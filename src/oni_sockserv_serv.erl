@@ -29,7 +29,7 @@ handle_call(_E, _From, State) ->
 handle_cast(accept, S = #state{socket = ListenSocket}) ->
     {ok, AcceptSocket} = gen_tcp:accept(ListenSocket),
     oni_sockserv_sup:start_socket(),
-    notify(AcceptSocket, "Oni [little nugget]"),
+    notify(AcceptSocket, "Oni [Lum Invader]"),
     {noreply, S#state{next = login}}.
 
 handle_info({tcp, Socket, Str}, S = #state{next = login}) ->
