@@ -73,10 +73,10 @@ delimited(Delimiters, [H|T], S) ->
 
 match([], _Stack, _Found) -> nothing;
 match(_Needle, [], Found) -> Found;
-match(Needle, [Thing|Rest], Found) ->
+match(Needle, [H|T], Found) ->
     Pattern = io_lib:format("^~s", [Needle]),   
-    case re:run(Thing, Pattern, [{capture, none}]) of
+    case re:run(H, Pattern, [{capture, none}]) of
         match when Found =/= nothing -> ambiguous;
-        match -> match(Needle, Rest, Thing);
-        nomatch -> match(Needle, Rest, Found)
+        match -> match(Needle, T, H);
+        nomatch -> match(Needle, T, Found)
     end.    
