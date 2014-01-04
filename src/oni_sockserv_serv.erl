@@ -37,7 +37,7 @@ handle_cast(accept, S = #state{socket = ListenSocket}) ->
     {noreply, S#state{next = login}}.
 
 handle_info({tcp, Socket, Str}, S = #state{next = login}) ->
-    Tokens = oni:tokens(Str),
+    Tokens = oni_parse:tokens(Str),
     notify(Socket, "~p", [Tokens]),
     {noreply, S}.
 

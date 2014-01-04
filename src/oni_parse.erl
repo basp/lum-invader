@@ -10,7 +10,7 @@
 %%% API 
 %%%============================================================================
 %% @doc Seperates the given string into tokens.
-%% Any tokens between double quotes will be combined into a single one.
+%% Any tokens between double quotes will be combined.
 -spec tokens(string()) -> [string()].
 tokens(Str) -> 
     Tokens = tokens(Str, [], []),
@@ -19,7 +19,7 @@ tokens(Str) ->
 %% @doc Parses the given string into a command tuple.
 -spec string(string()) -> {string(), string(), string() | none, string()}.
 string(Str) ->
-    [Cmd|Args] = oni_scan:tokens(Str),
+    [Cmd|Args] = tokens(Str),
     {Dobj, Prep, Iobj} = string(Args, []),
     {Cmd, string:join(Dobj, " "), Prep, string:join(Iobj, " ")}.
 
@@ -79,7 +79,6 @@ is_prep(Str) ->
         _ -> false
     end.
 
-%% @author Hyperboreus [http://stackoverflow.com/users/763505/hyperboreus]
 %% http://stackoverflow.com/questions/6901598/tokenize-quoted-string
 tokens([], Tokens, Buffer) ->
     F = fun(X) -> string:strip(X, both, $") end,

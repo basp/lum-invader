@@ -1,0 +1,5 @@
+%% encoding: UTF-8
+{application,oni}.
+{packages,[]}.
+{modules,[oni_app,oni_lists,oni_match,oni_parse,oni_sockserv_serv,
+          oni_sockserv_sup]}.
