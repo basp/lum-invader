@@ -6,8 +6,6 @@
 
 -export([tokens/1, string/1]).
 
--type prepstr() :: string() | none.
-
 %%%============================================================================
 %%% API 
 %%%============================================================================
@@ -19,7 +17,7 @@ tokens(Str) ->
     lists:filter(fun(X) -> X =/= [] end, Tokens).
 
 %% @doc Parses the given string into a command tuple.
--spec string(string()) -> {string(), string(), prepstr(), string()}.
+-spec string(string()) -> {string(), string(), string() | none, string()}.
 string(Str) ->
     [Cmd|Args] = oni_scan:tokens(Str),
     {Dobj, Prep, Iobj} = string(Args, []),
