@@ -1,5 +1,6 @@
 %%%----------------------------------------------------------------------------
-%%% @copyright 2013-2014 Bas Pennings
+%%% @author Bas Pennings [http://github.com/basp]
+%%% @copyright 2013-2014
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_parse).
@@ -79,7 +80,7 @@ is_prep(Str) ->
         _ -> false
     end.
 
-%% http://stackoverflow.com/questions/6901598/tokenize-quoted-string
+%% See also http://stackoverflow.com/questions/6901598/tokenize-quoted-string.
 tokens([], Tokens, Buffer) ->
     F = fun(X) -> string:strip(X, both, $") end,
     lists:map(F, Tokens ++ [Buffer]);
