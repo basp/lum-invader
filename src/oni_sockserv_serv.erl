@@ -38,7 +38,8 @@ handle_cast(accept, S = #state{socket = ListenSocket}) ->
     {noreply, S#state{next = login}}.
 
 handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
-    notify(Socket, Data),
+    Command = oni_cmd:parse(Data),
+    notify(Socket, "~p", [Command]),
     {noreply, S}.
 
 terminate(_Reason, _State) ->
@@ -50,10 +51,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================    
 %%% Internal functions
 %%%============================================================================
-notify(Socket, Data) -> 
-    notify(Socket, Data, []).
+notify(Socket, Str) ->
+    notify(Socket, Str, []).
 
-notify(Socket, Data, _Args) ->
-    ok = gen_tcp:send(Socket, [Data, <<$\r, $\n>>]),
-    ok = inet:setopts(Socket, [{active, once}, {mode, binary}]),
-    ok.
+notify(Socket, Str, Args) -> 
+    ok = gen_tcp:send(Socket, [io_lib:format(Str, Args), <<$\r, $\n>>]),
+    ok = inet:setopts(Socket, [{active, once}, {mode, binary}]).

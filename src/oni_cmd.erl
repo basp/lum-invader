@@ -5,6 +5,13 @@
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
 
+%% verb        a string, the first word of the command
+%% argstr      a string, everything after the first word of the command
+%% args        a list of strings, the words in `argstr'
+%% dobjstr     a string, the direct object string found during parsing
+%% prepstr     a string, the prepositional phrase found during parsing
+%% iobjstr     a string, the indirect object string
+
 -export([parse/1]).
 
 -spec parse(binary()) -> 
@@ -20,24 +27,36 @@ parse(Data) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
+-spec trim_end(binary()) -> binary().
+trim_end(Data) ->
+    trim_end(Data, <<>>).
+
+-spec trim_end(binary(), binary()) -> binary().
+trim_end(<<C,_Rest/binary>>, Acc) 
+        when C =:= $\r; C =:= $\n -> Acc;
+trim_end(<<C,Rest/binary>>, Acc) ->
+    trim_end(Rest, <<Acc/binary, C>>);
+trim_end(<<>>, Acc) -> 
+    Acc.
+
 -spec command(binary(), {binary()}) ->
-    {binary(), binary()} |
-    {binary(), binary(), binary(), binary()}.
+    {binary(), binary(), binary()} |
+    {binary(), binary(), binary(), binary(), binary()}.
 command(Data, {Verb}) ->
     words(Data, fun(Rest, Dobj) -> 
-        command(Rest, {Verb, Dobj})
+        command(Rest, {Verb, trim_end(Data), Dobj})
     end);
-command(Data, {Verb, Dobj}) ->
+command(Data, {Verb, Argstr, Dobj}) ->
     case preposition(Data) of
-        false -> {Verb, Dobj};
+        false -> {Verb, Argstr, Dobj};
         {Prep, Rest} ->
             whitespace(Rest, fun(Rest2) -> 
-                    command(Rest2, {Verb, Dobj, Prep}) 
+                    command(Rest2, {Verb, Argstr, Dobj, Prep}) 
             end)
     end;
-command(Data, {Verb, Dobj, Prep}) -> 
+command(Data, {Verb, Argstr, Dobj, Prep}) -> 
     words(Data, fun(_Rest, Iobj) ->
-        {Verb, Dobj, Prep, Iobj}
+        {Verb, Argstr, Dobj, Prep, Iobj}
     end).
 
 -spec words(binary(), fun()) -> any().
@@ -46,10 +65,10 @@ words(Data, Fun) ->
 
 -spec words(binary(), fun(), [binary()]) -> any().
 words(<<>>, Fun, Acc) ->
-    Fun(<<>>, Acc);
+    Fun(<<>>, lists:reverse(Acc));
 words(Data, Fun, Acc) ->
     case preposition(Data) of
-        {_, _} -> Fun(Data, Acc);
+        {_, _} -> Fun(Data, lists:reverse(Acc));
         false -> 
             word(Data, fun(Rest, Word) ->
                 whitespace(Rest, fun(Rest2) ->
@@ -59,7 +78,8 @@ words(Data, Fun, Acc) ->
     end.
 
 -spec whitespace(binary(), fun()) -> any().
-whitespace(<<C, Rest/binary>>, Fun) when C =:= $\s; C =:= $\t ->
+whitespace(<<C, Rest/binary>>, Fun) 
+        when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
     whitespace(Rest, Fun);
 whitespace(Data, Fun) ->
     Fun(Data).
@@ -81,7 +101,7 @@ token(Data, Fun) ->
 token(<<>>, Fun, _Case, Acc) -> 
     Fun(<<>>, Acc);
 token(Data = <<C, _Rest/binary>>, Fun, _Case, Acc) 
-    when C =:= $\s; C =:= $\t ->
+    when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
         Fun(Data, Acc);
 token(<<$", Rest/binary>>, Fun, Case, Acc) ->
     token(Rest, Fun, Case, Acc);
