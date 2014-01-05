@@ -37,9 +37,8 @@ handle_cast(accept, S = #state{socket = ListenSocket}) ->
     notify(AcceptSocket, "Oni [Lum Invader]"),
     {noreply, S#state{next = login}}.
 
-handle_info({tcp, Socket, Str}, S = #state{next = login}) ->
-    Tokens = oni_parse:tokens(Str),
-    notify(Socket, "~p", [Tokens]),
+handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
+    notify(Socket, Data),
     {noreply, S}.
 
 terminate(_Reason, _State) ->
@@ -51,9 +50,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================    
 %%% Internal functions
 %%%============================================================================
-notify(Socket, Str) -> notify(Socket, Str, []).
+notify(Socket, Data) -> 
+    notify(Socket, Data, []).
 
-notify(Socket, Str, Args) ->
-    ok = gen_tcp:send(Socket, io_lib:format(Str ++ "~n", Args)),
-    ok = inet:setopts(Socket, [{active, once}]),
+notify(Socket, Data, _Args) ->
+    ok = gen_tcp:send(Socket, [Data, <<$\r, $\n>>]),
+    ok = inet:setopts(Socket, [{active, once}, {mode, binary}]),
     ok.
