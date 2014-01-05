@@ -1,17 +1,28 @@
+%%%----------------------------------------------------------------------------
+%%% @author Bas Pennings [http://github.com/basp]
+%%% @copyright 2013-2014
+%%% @end
+%%%----------------------------------------------------------------------------
 -module(oni_cmd).
 
--compile(export_all).
+-export([parse/1]).
 
--spec command(binary()) -> 
+-spec parse(binary()) -> 
     {binary(), binary()} | 
     {binary(), binary(), binary(), binary()}.
-command(Data) ->
+parse(Data) ->
     token(Data, fun(Rest, Verb) -> 
         whitespace(Rest, fun(Rest2) ->
             command(Rest2, {Verb})
         end)
     end).
 
+%%%============================================================================
+%%% Internal functions
+%%%============================================================================
+-spec command(binary(), {binary()}) ->
+    {binary(), binary()} |
+    {binary(), binary(), binary(), binary()}.
 command(Data, {Verb}) ->
     words(Data, fun(Rest, Dobj) -> 
         command(Rest, {Verb, Dobj})
