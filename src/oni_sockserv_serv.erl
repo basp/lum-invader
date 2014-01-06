@@ -1,6 +1,7 @@
 %%%----------------------------------------------------------------------------
-%%% @author Bas Pennings [http://github.com/basp]
-%%% @copyright 2013-2014
+%%% @author Bas Pennings
+%%%  [http://themeticulousgeek.com]
+%%% @copyright 2013-2014 Bas Pennings
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_sockserv_serv).
