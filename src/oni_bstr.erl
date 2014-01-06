@@ -7,17 +7,41 @@
 %%%----------------------------------------------------------------------------
 -module(oni_bstr).
 
--export([join/1, join/2, join/3, ps/2, trim_start/1, trim_end/1, trim/1]).
+-export([join/1, join/2, join/3, ps/2, 
+	     trim_start/1, trim_end/1, trim/1,
+	     starts_with/2, match/2]).
+
+-type match() :: any() | nothing | ambiguous.
 
 %%%============================================================================
 %%% API
 %%%============================================================================
 
 %%-----------------------------------------------------------------------------
-%% @doc Removes beginning whitespace.
-%% 
-%% @spec trim_start(binary()) -> binary()
+%% @doc Matches a thing with a list of things.
 %%-----------------------------------------------------------------------------
+-spec match(Thing::binary(), List::binary()) -> match().
+match(Thing, List) ->
+	match(Thing, List, nothing).
+
+%%-----------------------------------------------------------------------------
+%% @doc Checks whether a binary starts with a particular prefix.
+%%-----------------------------------------------------------------------------
+-spec starts_with(Prefix::binary(), Data::binary()) -> boolean().
+starts_with(<<>>, _) ->
+	true;
+starts_with(_, <<>>) ->
+	false;
+starts_with(<<X, _/binary>>, <<Y, _/binary>>)
+		when X =/= Y ->
+	false;
+starts_with(<<_, RestX/binary>>, <<_, RestY/binary>>) ->
+	starts_with(RestX, RestY).
+
+%%-----------------------------------------------------------------------------
+%% @doc Removes beginning whitespace.
+%%-----------------------------------------------------------------------------
+-spec trim_start(Data::binary()) -> binary().
 trim_start(<<>>) -> 
 	<<>>;
 trim_start(<<C, Rest/binary>>) 
@@ -28,55 +52,58 @@ trim_start(Data) ->
 
 %%-----------------------------------------------------------------------------
 %% @doc Removes trailing whitespace.
-%%
-%% @spec trim_end(binary()) -> binary()
 %%-----------------------------------------------------------------------------
+-spec trim_end(Data::binary()) -> binary().
 trim_end(Data) ->
 	trim_end(Data, <<>>, <<>>).
 
 %%-----------------------------------------------------------------------------
 %% @doc Removes beginning and trailing whitespace.
-%%
-%% @spec trim(binary()) -> binary()
 %%-----------------------------------------------------------------------------
+-spec trim(Data::binary()) -> binary().
 trim(Data) ->
 	trim_end(trim_start(Data)).
 
 %%-----------------------------------------------------------------------------
 %% @doc Performs pronoun substitution.
-%% 
-%% @spec sub(Data::binary(), Who::[term()]) -> binary().
 %%-----------------------------------------------------------------------------
+-spec ps(Data::binary(), Who::[term()]) -> binary().
 ps(Data, Who) ->
 	ps(Data, Who, <<>>).
 
 %%-----------------------------------------------------------------------------
 %% @doc Joins the binaries using a space character as separator.
-%% 
-%% @spec join([binary()]) -> binary()
 %%-----------------------------------------------------------------------------
+-spec join(List::[binary()]) -> binary().
 join(Binaries) ->
 	join(Binaries, <<$\s>>).
 
 %%-----------------------------------------------------------------------------
 %% @doc Joins the binaries using Sep as separator.
-%% 
-%% @spec join([binary()], Sep::binary()) -> binary()
 %%-----------------------------------------------------------------------------
+-spec join(List::[binary()], Sep::binary()) -> binary().
 join(Binaries, Sep) ->
 	join(Binaries, Sep, Sep).
 
 %%-----------------------------------------------------------------------------
 %% @doc Joins the binaries using LastSep for the last element.
-%% 
-%% @spec join([binary()], Sep::binary(), LastSep::binary()) -> binary()
 %%-----------------------------------------------------------------------------
+-spec join(List::[binary()], Sep::binary(), LastSep::binary()) -> binary().
 join(Binaries, Sep, LastSep) ->
 	join(Binaries, Sep, LastSep, <<>>).
 
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
+
+match(<<>>, _List, _Found) -> nothing;
+match(_Thing, [], Found) -> Found;
+match(Thing, [H|T], Found) ->
+	case starts_with(Thing, H) of
+		true when Found =/= nothing -> ambiguous;
+		true -> match(Thing, T, H);
+		false -> match(Thing, T, Found)
+	end.
 
 trim_end(<<>>, _Buffer, Acc) -> Acc;
 trim_end(<<C, Rest/binary>>, Buffer, Acc)
