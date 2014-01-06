@@ -104,8 +104,8 @@ words_until_preposition(Data, Fun, Acc) ->
 
 -spec whitespace(binary(), fun()) -> any().
 whitespace(<<C, Rest/binary>>, Fun) 
-        when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
-    whitespace(Rest, Fun);
+    when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
+        whitespace(Rest, Fun);
 whitespace(Data, Fun) ->
     Fun(Data).
 

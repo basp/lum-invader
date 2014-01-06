@@ -33,8 +33,7 @@ starts_with(<<>>, _) ->
 starts_with(_, <<>>) ->
 	false;
 starts_with(<<X, _/binary>>, <<Y, _/binary>>)
-		when X =/= Y ->
-	false;
+	when X =/= Y -> false;
 starts_with(<<_, RestX/binary>>, <<_, RestY/binary>>) ->
 	starts_with(RestX, RestY).
 
@@ -45,8 +44,7 @@ starts_with(<<_, RestX/binary>>, <<_, RestY/binary>>) ->
 trim_start(<<>>) -> 
 	<<>>;
 trim_start(<<C, Rest/binary>>) 
-		when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
-	trim_start(Rest);
+	when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n -> trim_start(Rest);
 trim_start(Data) ->
 	Data.
 
@@ -107,8 +105,8 @@ match(Thing, [H|T], Found) ->
 
 trim_end(<<>>, _Buffer, Acc) -> Acc;
 trim_end(<<C, Rest/binary>>, Buffer, Acc)
-		when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
-	trim_end(Rest, <<Buffer/binary, C>>, Acc);
+	when C =:= $\s; C =:= $\t; C =:= $\r; C =:= $\n ->
+		trim_end(Rest, <<Buffer/binary, C>>, Acc);
 trim_end(<<C, Rest/binary>>, Buffer, Acc) ->
 	trim_end(Rest, <<>>, <<Acc/binary, Buffer/binary, C>>).
 
