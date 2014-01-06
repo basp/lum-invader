@@ -9,7 +9,7 @@
 
 -export([parse/1]).
 
-%%----------------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 %% The cmdspec type represents a raw parsed command. Below is a description
 %% of the items that may appear in this tuple. Note that prepstr and iobjstr
 %% are optional. These are only included when a prepstr is found.
@@ -20,7 +20,7 @@
 %%   Iobjstr     a string, the indirect object string
 %%   Argstr      a string, everything after the first word of the command
 %%   Args        a list of strings, the words in `argstr'
-%%----------------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
     {Verb::binary(), Dobjstr::binary(),
@@ -30,7 +30,7 @@
 %%% API
 %%%============================================================================
 
-%%----------------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 %% @doc Parses the binary string into a command specification tuple.
 %%
 %% The result comes in two variations depending on whether a preposition
@@ -38,7 +38,7 @@
 %% also include the prepstr and iobjstr items as well as all the others.
 %% If no prepstr was found, it will only include the verb, dobjstr, argstr
 %% and args items.
-%%----------------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 -spec parse(binary()) -> cmdspec().
 parse(Data) ->
     %% The first token is assumed to be the verb.
@@ -54,7 +54,8 @@ parse(Data) ->
 
 -spec command(binary(), {binary()}) -> cmdspec().
 command(Data, {Verb}) ->
-    %% Parse the dobj and pass along the argstr.
+    %% Parse the dobj and also pass along everything else (trimmed) 
+    %% as our argstr.
     words_until_preposition(Data, fun(Rest, Dobj) -> 
         command(Rest, {Verb, Dobj, oni_bstr:trim(Data)})
     end);
