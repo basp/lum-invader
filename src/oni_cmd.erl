@@ -42,25 +42,11 @@ parse(Data) ->
 %%% Internal functions
 %%%============================================================================
 
-%% Hacky! Returns everything from the binary until the first newline.
-%% This is used to "strip" trailing newlines from the argstr.
--spec until_newline(binary()) -> binary().
-until_newline(Data) ->
-    until_newline(Data, <<>>).
-
--spec until_newline(binary(), binary()) -> binary().
-until_newline(<<C,_Rest/binary>>, Acc) 
-        when C =:= $\r; C =:= $\n -> Acc;
-until_newline(<<C,Rest/binary>>, Acc) ->
-    until_newline(Rest, <<Acc/binary, C>>);
-until_newline(<<>>, Acc) -> 
-    Acc.
-
 -spec command(binary(), {binary()}) -> cmdspec().
 command(Data, {Verb}) ->
     %% Parse the dobj and pass along the argstr.
     words_until_preposition(Data, fun(Rest, Dobj) -> 
-        command(Rest, {Verb, Dobj, until_newline(Data)})
+        command(Rest, {Verb, Dobj, oni_bstr:trim(Data)})
     end);
 command(Data, {Verb, Dobj, Argstr}) ->
     %% Look for a preposition and continue, if we can't
@@ -68,7 +54,7 @@ command(Data, {Verb, Dobj, Argstr}) ->
     case preposition(Data) of
         false -> 
             Dobjstr = oni_bstr:join(Dobj),
-            Args = lists:concat([[Verb], Dobj]),
+            Args = Dobj,
             {Verb, Dobjstr, Argstr, Args};
         {Prep, Rest} ->
             whitespace(Rest, fun(Rest2) -> 
@@ -80,7 +66,7 @@ command(Data, {Verb, Dobj, Prep, Argstr}) ->
     words(Data, fun(_Rest, Iobj) ->
         Dobjstr = oni_bstr:join(Dobj),
         Iobjstr = oni_bstr:join(Iobj),
-        Args = lists:concat([[Verb], Dobj, [Prep], Iobj]),
+        Args = lists:concat([Dobj, [Prep], Iobj]),
         {Verb, Dobjstr, Prep, Iobjstr, Argstr, Args}
     end).
 
