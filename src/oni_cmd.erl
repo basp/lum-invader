@@ -1,6 +1,8 @@
 %%%----------------------------------------------------------------------------
-%%% @author Bas Pennings [http://github.com/basp]
-%%% @copyright 2013-2014
+%%% @author Bas Pennings
+%%%  [http://themeticulousgeek.com]
+%%% @copyright 2013-2014 Bas Pennings
+%%% @doc Utility functions for working with binary strings.
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
@@ -8,13 +10,12 @@
 -export([parse/1]).
 
 %%----------------------------------------------------------------------------
-%% NOTE:
-%%   verb        a string, the first word of the command
-%%   argstr      a string, everything after the first word of the command
-%%   args        a list of strings, the words in `argstr'
-%%   dobjstr     a string, the direct object string found during parsing
-%%   prepstr     a string, the prepositional phrase found during parsing
-%%   iobjstr     a string, the indirect object string
+%% verb        a string, the first word of the command
+%% dobjstr     a string, the direct object string found during parsing
+%% prepstr     a string, the prepositional phrase found during parsing
+%% iobjstr     a string, the indirect object string
+%% argstr      a string, everything after the first word of the command
+%% args        a list of strings, the words in `argstr'
 %%----------------------------------------------------------------------------
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
@@ -30,6 +31,7 @@
 %%----------------------------------------------------------------------------
 -spec parse(binary()) -> cmdspec().
 parse(Data) ->
+    %% The first token is assumed to be the verb.
     token(Data, fun(Rest, Verb) -> 
         whitespace(Rest, fun(Rest2) ->
             command(Rest2, {Verb})
@@ -56,10 +58,13 @@ until_newline(<<>>, Acc) ->
 
 -spec command(binary(), {binary()}) -> cmdspec().
 command(Data, {Verb}) ->
-    words(Data, fun(Rest, Dobj) -> 
+    %% Parse the dobj and pass along the argstr.
+    words_until_preposition(Data, fun(Rest, Dobj) -> 
         command(Rest, {Verb, Dobj, until_newline(Data)})
     end);
 command(Data, {Verb, Dobj, Argstr}) ->
+    %% Look for a preposition and continue, if we can't
+    %% find a preposition at this point then we are done.
     case preposition(Data) of
         false -> 
             Dobjstr = oni_bstr:join(Dobj),
@@ -71,6 +76,7 @@ command(Data, {Verb, Dobj, Argstr}) ->
             end)
     end;
 command(Data, {Verb, Dobj, Prep, Argstr}) -> 
+    %% Found a preposition, finish with the iobj part.
     words(Data, fun(_Rest, Iobj) ->
         Dobjstr = oni_bstr:join(Dobj),
         Iobjstr = oni_bstr:join(Iobj),
@@ -86,12 +92,26 @@ words(Data, Fun) ->
 words(<<>>, Fun, Acc) ->
     Fun(<<>>, lists:reverse(Acc));
 words(Data, Fun, Acc) ->
+        word(Data, fun(Rest, Word) ->
+            whitespace(Rest, fun(Rest2) ->
+                words(Rest2, Fun, [Word|Acc])
+            end)
+        end).
+
+-spec words_until_preposition(binary(), fun()) -> any().
+words_until_preposition(Data, Fun) ->
+    words_until_preposition(Data, Fun, []).
+
+-spec words_until_preposition(binary(), fun(), [binary()]) -> any().
+words_until_preposition(<<>>, Fun, Acc) ->
+    Fun(<<>>, lists:reverse(Acc));
+words_until_preposition(Data, Fun, Acc) ->
     case preposition(Data) of
         {_, _} -> Fun(Data, lists:reverse(Acc));
         false -> 
             word(Data, fun(Rest, Word) ->
                 whitespace(Rest, fun(Rest2) ->
-                    words(Rest2, Fun, [Word|Acc])
+                    words_until_preposition(Rest2, Fun, [Word|Acc])
                 end)
             end)
     end.
@@ -147,7 +167,10 @@ quoted_string(<<$\\, C, Rest/binary>>, Fun, Acc) ->
 quoted_string(<<C, Rest/binary>>, Fun, Acc) ->
     quoted_string(Rest, Fun, <<Acc/binary, C>>).
 
--spec preposition(binary()) -> {binary(), binary()} | false.
+%% We need to be able to distinguish between "normal" words and
+%% prepositions in order to split the command into dobj and iobj parts.
+-spec preposition(Data::binary()) -> 
+    {Prep::binary(), Rest::binary()} | false.
 preposition(Data) ->
     case Data of
         <<"with ", Rest/binary>>        -> {<<"with">>, Rest};
