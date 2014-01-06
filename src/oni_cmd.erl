@@ -5,15 +5,30 @@
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
 
-%% verb        a string, the first word of the command
-%% argstr      a string, everything after the first word of the command
-%% args        a list of strings, the words in `argstr'
-%% dobjstr     a string, the direct object string found during parsing
-%% prepstr     a string, the prepositional phrase found during parsing
-%% iobjstr     a string, the indirect object string
-
 -export([parse/1]).
 
+%%----------------------------------------------------------------------------
+%% NOTE:
+%%   verb        a string, the first word of the command
+%%   argstr      a string, everything after the first word of the command
+%%   args        a list of strings, the words in `argstr'
+%%   dobjstr     a string, the direct object string found during parsing
+%%   prepstr     a string, the prepositional phrase found during parsing
+%%   iobjstr     a string, the indirect object string
+%%----------------------------------------------------------------------------
+-type cmdspec() :: 
+    {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
+    {Verb::binary(), Dobjstr::binary(),
+     Prep::binary(), Iobjstr::binary(), Argstr::binary(), Args::[binary()]}.
+
+%%%============================================================================
+%%% API
+%%%============================================================================
+
+%%----------------------------------------------------------------------------
+%% @doc Parses the binary string into a command specification tuple.
+%%----------------------------------------------------------------------------
+-spec parse(binary()) -> cmdspec().
 parse(Data) ->
     token(Data, fun(Rest, Verb) -> 
         whitespace(Rest, fun(Rest2) ->
@@ -24,33 +39,43 @@ parse(Data) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
--spec trim_end(binary()) -> binary().
-trim_end(Data) ->
-    trim_end(Data, <<>>).
 
--spec trim_end(binary(), binary()) -> binary().
-trim_end(<<C,_Rest/binary>>, Acc) 
+%% Hacky! Returns everything from the binary until the first newline.
+%% This is used to "strip" trailing newlines from the argstr.
+-spec until_newline(binary()) -> binary().
+until_newline(Data) ->
+    until_newline(Data, <<>>).
+
+-spec until_newline(binary(), binary()) -> binary().
+until_newline(<<C,_Rest/binary>>, Acc) 
         when C =:= $\r; C =:= $\n -> Acc;
-trim_end(<<C,Rest/binary>>, Acc) ->
-    trim_end(Rest, <<Acc/binary, C>>);
-trim_end(<<>>, Acc) -> 
+until_newline(<<C,Rest/binary>>, Acc) ->
+    until_newline(Rest, <<Acc/binary, C>>);
+until_newline(<<>>, Acc) -> 
     Acc.
 
+-spec command(binary(), {binary()}) -> cmdspec().
 command(Data, {Verb}) ->
     words(Data, fun(Rest, Dobj) -> 
-        command(Rest, {Verb, trim_end(Data), Dobj})
+        command(Rest, {Verb, Dobj, until_newline(Data)})
     end);
-command(Data, {Verb, Argstr, Dobj}) ->
+command(Data, {Verb, Dobj, Argstr}) ->
     case preposition(Data) of
-        false -> {Verb, Argstr, Dobj};
+        false -> 
+            Dobjstr = oni_bstr:join(Dobj),
+            Args = lists:concat([[Verb], Dobj]),
+            {Verb, Dobjstr, Argstr, Args};
         {Prep, Rest} ->
             whitespace(Rest, fun(Rest2) -> 
-                    command(Rest2, {Verb, Argstr, Dobj, Prep}) 
+                    command(Rest2, {Verb, Dobj, Prep, Argstr}) 
             end)
     end;
-command(Data, {Verb, Argstr, Dobj, Prep}) -> 
+command(Data, {Verb, Dobj, Prep, Argstr}) -> 
     words(Data, fun(_Rest, Iobj) ->
-        {Verb, Argstr, Dobj, Prep, Iobj}
+        Dobjstr = oni_bstr:join(Dobj),
+        Iobjstr = oni_bstr:join(Iobj),
+        Args = lists:concat([[Verb], Dobj, [Prep], Iobj]),
+        {Verb, Dobjstr, Prep, Iobjstr, Argstr, Args}
     end).
 
 -spec words(binary(), fun()) -> any().
@@ -125,31 +150,31 @@ quoted_string(<<C, Rest/binary>>, Fun, Acc) ->
 -spec preposition(binary()) -> {binary(), binary()} | false.
 preposition(Data) ->
     case Data of
-        <<"with", Rest/binary>> -> {<<"with">>, Rest};
-        <<"at", Rest/binary>> -> {<<"at">>, Rest};
-        <<"to", Rest/binary>> -> {<<"to">>, Rest};
-        <<"in front of", Rest/binary>> -> {<<"in front of">>, Rest};
-        <<"in", Rest/binary>> -> {<<"in">>, Rest};
-        <<"from", Rest/binary>> -> {<<"from">>, Rest};
-        <<"inside", Rest/binary>> -> {<<"inside">>, Rest};
-        <<"into", Rest/binary>> -> {<<"into">>, Rest};
-        <<"on top of", Rest/binary>> -> {<<"on top of">>, Rest};
-        <<"on", Rest/binary>> -> {<<"on">>, Rest};
-        <<"onto", Rest/binary>> -> {<<"onto">>, Rest};
-        <<"upon", Rest/binary>> -> {<<"upon">>, Rest};
-        <<"using", Rest/binary>> -> {<<"using">>, Rest};
-        <<"out of", Rest/binary>> -> {<<"out of">>, Rest};
-        <<"from inside", Rest/binary>> -> {<<"from inside">>, Rest};
-        <<"over", Rest/binary>> -> {<<"over">>, Rest};
-        <<"through", Rest/binary>> -> {<<"through">>, Rest};
-        <<"under", Rest/binary>> -> {<<"under">>, Rest};
-        <<"underneath", Rest/binary>> -> {<<"underneath">>, Rest};
-        <<"behind", Rest/binary>> -> {<<"behind">>, Rest};
-        <<"for", Rest/binary>> -> {<<"for">>, Rest};
-        <<"about", Rest/binary>> -> {<<"about">>, Rest};
-        <<"is", Rest/binary>> -> {<<"is">>, Rest};
-        <<"as", Rest/binary>> -> {<<"as">>, Rest};
-        <<"off", Rest/binary>> -> {<<"off">>, Rest};
-        <<"off of", Rest/binary>> -> {<<"off of">>, Rest};
+        <<"with ", Rest/binary>>        -> {<<"with">>, Rest};
+        <<"at ", Rest/binary>>          -> {<<"at">>, Rest};
+        <<"to ", Rest/binary>>          -> {<<"to">>, Rest};
+        <<"in front of ", Rest/binary>> -> {<<"in front of">>, Rest};
+        <<"in ", Rest/binary>>          -> {<<"in">>, Rest};
+        <<"from ", Rest/binary>>        -> {<<"from">>, Rest};
+        <<"inside ", Rest/binary>>      -> {<<"inside">>, Rest};
+        <<"into ", Rest/binary>>        -> {<<"into">>, Rest};
+        <<"on top of ", Rest/binary>>   -> {<<"on top of">>, Rest};
+        <<"on ", Rest/binary>>          -> {<<"on">>, Rest};
+        <<"onto ", Rest/binary>>        -> {<<"onto">>, Rest};
+        <<"upon ", Rest/binary>>        -> {<<"upon">>, Rest};
+        <<"using ", Rest/binary>>       -> {<<"using">>, Rest};
+        <<"out of ", Rest/binary>>      -> {<<"out of">>, Rest};
+        <<"from inside ", Rest/binary>> -> {<<"from inside">>, Rest};
+        <<"over ", Rest/binary>>        -> {<<"over">>, Rest};
+        <<"through ", Rest/binary>>     -> {<<"through">>, Rest};
+        <<"under ", Rest/binary>>       -> {<<"under">>, Rest};
+        <<"underneath ", Rest/binary>>  -> {<<"underneath">>, Rest};
+        <<"behind ", Rest/binary>>      -> {<<"behind">>, Rest};
+        <<"for ", Rest/binary>>         -> {<<"for">>, Rest};
+        <<"about ", Rest/binary>>       -> {<<"about">>, Rest};
+        <<"is ", Rest/binary>>          -> {<<"is">>, Rest};
+        <<"as ", Rest/binary>>          -> {<<"as">>, Rest};
+        <<"off ", Rest/binary>>         -> {<<"off">>, Rest};
+        <<"off of ", Rest/binary>>      -> {<<"off of">>, Rest};
         _ -> false
     end.
