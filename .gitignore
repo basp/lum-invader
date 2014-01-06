@@ -1,4 +1,5 @@
 Mnesia.*
+doc
 .eunit
 deps
 *.o
