@@ -10,12 +10,16 @@
 -export([parse/1]).
 
 %%----------------------------------------------------------------------------
-%% verb        a string, the first word of the command
-%% dobjstr     a string, the direct object string found during parsing
-%% prepstr     a string, the prepositional phrase found during parsing
-%% iobjstr     a string, the indirect object string
-%% argstr      a string, everything after the first word of the command
-%% args        a list of strings, the words in `argstr'
+%% The cmdspec type represents a raw parsed command. Below is a description
+%% of the items that may appear in this tuple. Note that prepstr and iobjstr
+%% are optional. These are only included when a prepstr is found.
+%% 
+%%   Verb        a string, the first word of the command
+%%   Dobjstr     a string, the direct object string found during parsing
+%%   Prepstr     a string, the prepositional phrase found during parsing
+%%   Iobjstr     a string, the indirect object string
+%%   Argstr      a string, everything after the first word of the command
+%%   Args        a list of strings, the words in `argstr'
 %%----------------------------------------------------------------------------
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
@@ -28,6 +32,12 @@
 
 %%----------------------------------------------------------------------------
 %% @doc Parses the binary string into a command specification tuple.
+%%
+%% The result comes in two variations depending on whether a preposition
+%% was found or not. If a preposition was found, the result tuple will
+%% also include the prepstr and iobjstr items as well as all the others.
+%% If no prepstr was found, it will only include the verb, dobjstr, argstr
+%% and args items.
 %%----------------------------------------------------------------------------
 -spec parse(binary()) -> cmdspec().
 parse(Data) ->
