@@ -2,7 +2,7 @@
 %%% @author Bas Pennings
 %%%  [http://themeticulousgeek.com]
 %%% @copyright 2013-2014 Bas Pennings
-%%% @doc Utility functions for working with binary strings.
+%%% @doc Command parser.
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
