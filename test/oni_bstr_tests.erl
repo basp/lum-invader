@@ -8,6 +8,18 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+trim_start_test() ->
+	?assertEqual(<<"foo">>, oni_bstr:trim_start(<<"    foo">>)),
+	?assertEqual(<<"foo">>, oni_bstr:trim_start(<<"foo">>)),
+	?assertEqual(<<"foo bar">>, oni_bstr:trim_start(<<"   foo bar">>)),
+	?assertEqual(<<"foo   ">>, oni_bstr:trim_start(<<"foo   ">>)).
+
+trim_end_test() ->
+	?assertEqual(<<"foo">>, oni_bstr:trim_end(<<"foo    ">>)),
+	?assertEqual(<<"foo">>, oni_bstr:trim_end(<<"foo">>)),
+	?assertEqual(<<"foo bar">>, oni_bstr:trim_end(<<"foo bar   ">>)),
+	?assertEqual(<<"   foo">>, oni_bstr:trim_end(<<"   foo">>)).
+
 join_test() ->
 	?assertEqual(
 		<<"foo">>, 
