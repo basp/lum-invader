@@ -29,8 +29,10 @@
 %% @doc Initializes the object table.
 %%-----------------------------------------------------------------------------
 init() ->
+	%% Stores all the objects that we know about
 	ets:new(?TABLE_OBJECTS, [ordered_set, {keypos, #object.id}, named_table, public]),
 	ets:insert(?TABLE_OBJECTS, #object{id = 0}),
+	%% Keeps track of max object id and any other counters
 	ets:new(?TABLE_COUNTERS, [set, named_table, public]),
 	ets:insert(?TABLE_COUNTERS, {max_id, 0}).
 

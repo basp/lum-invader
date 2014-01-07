@@ -1,2 +1,0 @@
--module(oni_cp).
-
