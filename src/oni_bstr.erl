@@ -11,18 +11,29 @@
 	     trim_start/1, trim_end/1, trim/1,
 	     starts_with/2, match/2]).
 
--type match() :: any() | nothing | ambiguous.
+-type match() :: 
+	any() | nothing | {ambiguous, [First::binary(), Second::binary()]}.
 
 %%%============================================================================
 %%% API
 %%%============================================================================
 
 %%-----------------------------------------------------------------------------
-%% @doc Matches a thing with a list of things.
+%% @doc Tries to match the prefix on a list of binary strings.
+%% 
+%% This will return the atom ambiguous when it finds to similar things. 
+%% Naturally, the search will be more exact (and also more expensive) when 
+%% the prefix is longer.
+%%
+%% Basically this just calls starts_with on all the items and if it finds
+%% exactly one match it will return that item. If nothing is found, it will
+%% return nothing. If more than one item is found then the tuple of
+%% {ambiguous, [Match1, Match2]} will be returned. It will stop immediately
+%% after finding a second match.
 %%-----------------------------------------------------------------------------
--spec match(Thing::binary(), List::binary()) -> match().
-match(Thing, List) ->
-	match(Thing, List, nothing).
+-spec match(Prefix::binary(), List::binary()) -> match().
+match(Prefix, List) ->
+	match(Prefix, List, nothing).
 
 %%-----------------------------------------------------------------------------
 %% @doc Checks whether a binary starts with a particular prefix.
@@ -95,12 +106,12 @@ join(Binaries, Sep, LastSep) ->
 %%%============================================================================
 
 match(<<>>, _List, _Found) -> nothing;
-match(_Thing, [], Found) -> Found;
-match(Thing, [H|T], Found) ->
-	case starts_with(Thing, H) of
-		true when Found =/= nothing -> ambiguous;
-		true -> match(Thing, T, H);
-		false -> match(Thing, T, Found)
+match(_Prefix, [], Found) -> Found;
+match(Prefix, [H|T], Found) ->
+	case starts_with(Prefix, H) of
+		true when Found =/= nothing -> {ambiguous, [Found, H]};
+		true -> match(Prefix, T, H);
+		false -> match(Prefix, T, Found)
 	end.
 
 trim_end(<<>>, _Buffer, Acc) -> Acc;
