@@ -11,7 +11,7 @@
 	     starts_with/2, match/2]).
 
 -type match() :: 
-	any() | nothing | {ambiguous, [First::binary(), Second::binary()]}.
+	any() | nothing | {ambiguous, First::binary(), Second::binary()}.
 
 %%%============================================================================
 %%% API
@@ -108,7 +108,7 @@ match(<<>>, _List, _Found) -> nothing;
 match(_Prefix, [], Found) -> Found;
 match(Prefix, [H|T], Found) ->
 	case starts_with(Prefix, H) of
-		true when Found =/= nothing -> {ambiguous, [Found, H]};
+		true when Found =/= nothing -> {ambiguous, Found, H};
 		true -> match(Prefix, T, H);
 		false -> match(Prefix, T, Found)
 	end.
@@ -176,4 +176,3 @@ join([X|Rest], Sep, LastSep, Acc) ->
 	join(Rest, Sep, LastSep, <<Acc/binary, Sep/binary, X/binary>>);
 join([], _Sep, _LastSep, Acc) -> 
 	Acc.
-

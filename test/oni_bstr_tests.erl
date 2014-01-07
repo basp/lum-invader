@@ -54,6 +54,8 @@ match_test() ->
 	?assertEqual(
 		<<"foo">>, oni_bstr:match(<<"fo">>, [<<"bar">>, <<"foo">>])),
 	?assertEqual(
-		ambiguous, oni_bstr:match(<<"foo">>, [<<"foobar">>, <<"foo">>])),
+		{ambiguous, <<"foobar">>, <<"foo">>}, 
+		oni_bstr:match(<<"foo">>, [<<"foobar">>, <<"foo">>])),
 	?assertEqual(
-		ambiguous, oni_bstr:match(<<"f">>, [<<"f">>, <<"f">>])).
+		{ambiguous, <<"f">>, <<"f">>}, 
+		oni_bstr:match(<<"f">>, [<<"f">>, <<"f">>])).
