@@ -1,3 +1,8 @@
+%%%----------------------------------------------------------------------------
+%%% @author Bas Pennings [http://themeticulousgeek.com]
+%%% @copyright 2013-2014 Bas Pennings
+%%% @end
+%%%----------------------------------------------------------------------------
 -module(oni_event_logger).
 
 -behaviour(gen_event).
