@@ -8,7 +8,12 @@
 -compile(export_all).
 
 %% Default login handler
-do_login(Socket, Command) ->   
+do_login(Socket, Command = {<<"connect">>, _Dobjstr, Argstr, _Args}) ->
+    notify(Socket, "Login with ~p", [Argstr]),
+    %% TODO: Get player from db, add return player id
+    notify(Socket, "~p", [Command]),
+    nothing;
+do_login(Socket, Command) ->
     notify(Socket, "~p", [Command]),
     nothing.
 
