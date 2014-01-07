@@ -13,7 +13,7 @@
 %%% application callbacks
 %%%============================================================================
 start(_Args, _Type) ->
-	oni_db:init(),
+    oni_db:init(),
     oni_sup:start_link().
 
 stop(_State) ->
