@@ -8,9 +8,9 @@
 %%%----------------------------------------------------------------------------
 -module(oni_db).
 
--compile(export_all).
+-include_lib("stdlib/include/qlc.hrl").
 
--type objid() :: integer() | nothing.
+-compile(export_all).
 
 -record(object, {id, 
                  parent = nothing, 
@@ -31,6 +31,8 @@
 -define(OBJECT_WRITE,	2#000100).
 -define(OBJECT_FERTILE,	2#000010).
 -define(OBJECT_PLAYER,	2#000001).
+
+-type objid() :: integer() | nothing.
 
 %%%============================================================================
 %%% Initializing the world database
@@ -194,6 +196,15 @@ contents(Id) ->
 			M = [{#object{id = '$1', location = Id, _='_'}, [], ['$1']}],
 			ets:select(?TABLE_OBJECTS, M)
 	end.
+
+%%-----------------------------------------------------------------------------
+%% @doc Returns a list of all objects that have the player flag set.
+%%-----------------------------------------------------------------------------
+-spec players() -> [objid()].
+players() ->
+	Q = qlc:q([O#object.id || 
+		       O <- ets:table(?TABLE_OBJECTS), is_player(O#object.id)]),
+	qlc:e(Q).
 
 %%%============================================================================
 %%% Manipulating object flags.
@@ -371,11 +382,6 @@ update_object_flag(Id, Flag, Value) ->
 			ets:insert(?TABLE_OBJECTS, Obj#object{flags = NewFlags})
 	end.
 
-%% Used internally to keep track of object ids
--spec update_counter(Key::atom(), Incr::integer()) -> integer().
-update_counter(Key, Incr) ->
-	ets:update_counter(?TABLE_COUNTERS, Key, Incr).
-
 -spec update_flags(Flag::integer(), Value::boolean(), Flags::integer()) -> 
 	NewFlags::integer().
 update_flags(Flag, Value, Flags) ->
@@ -386,3 +392,8 @@ update_flags(Flag, Value, Flags) ->
 
 is_flag_set(Flag, Flags) ->
 	Flags band Flag =:= Flag.
+
+%% Used internally to keep track of object ids
+-spec update_counter(Key::atom(), Incr::integer()) -> integer().
+update_counter(Key, Incr) ->
+	ets:update_counter(?TABLE_COUNTERS, Key, Incr).
