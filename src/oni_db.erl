@@ -1,6 +1,9 @@
 %%%----------------------------------------------------------------------------
 %%% @author Bas Pennings [http://themeticulousgeek.com]
 %%% @copyright 2013-2014 Bas Pennings
+%%% @doc Database API.
+%%%
+%%% TODO: This is becoming a bit unwieldy and verbose, it needs some TLC. 
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_db).
@@ -15,13 +18,22 @@
                  location = nothing, 
                  props = [], 
                  verbs = [], 
-                 flags = 0}).
+                 flags = 2#000000}).
 
--define(TABLE_OBJECTS, oni_objects).
+%% Table identifiers
+-define(TABLE_OBJECTS, 	oni_objects).
 -define(TABLE_COUNTERS, oni_counters).
 
+%% Object flags
+-define(OBJECT_WIZARD, 	2#100000).
+-define(OBJECT_PROG, 	2#010000).
+-define(OBJECT_READ,	2#001000).
+-define(OBJECT_WRITE,	2#000100).
+-define(OBJECT_FERTILE,	2#000010).
+-define(OBJECT_PLAYER,	2#000001).
+
 %%%============================================================================
-%%% API
+%%% Initializing the world database
 %%%============================================================================
 
 %%-----------------------------------------------------------------------------
@@ -34,6 +46,10 @@ init() ->
 	%% Keeps track of max object id and any other counters
 	ets:new(?TABLE_COUNTERS, [set, named_table, public]),
 	ets:insert(?TABLE_COUNTERS, {max_id, 0}).
+
+%%%============================================================================
+%%% Core object manipulation.
+%%%============================================================================
 
 %%-----------------------------------------------------------------------------
 %% @doc Creates a new object and returns the id of the newly created object.
@@ -179,6 +195,61 @@ contents(Id) ->
 			ets:select(?TABLE_OBJECTS, M)
 	end.
 
+%%%============================================================================
+%%% Manipulating object flags.
+%%%============================================================================
+
+-spec is_player(Id::objid()) -> boolean() | 'E_INVARG'.
+is_player(Id) -> 
+	is_object_flag_set(Id, ?OBJECT_PLAYER).
+
+-spec set_player_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
+set_player_flag(Id, Value) -> 
+	update_object_flag(Id, ?OBJECT_PLAYER, Value).
+
+-spec is_wizard(Id::objid()) -> boolean() | 'E_INVARG'.
+is_wizard(Id) ->
+	is_object_flag_set(Id, ?OBJECT_WIZARD).
+
+-spec set_wizard_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
+set_wizard_flag(Id, Value) ->
+	update_object_flag(Id, ?OBJECT_WIZARD, Value).
+
+-spec is_programmer(Id::objid()) -> boolean() | 'E_INVARG'.
+is_programmer(Id) ->
+	is_object_flag_set(Id, ?OBJECT_PROG).
+
+-spec set_programmer_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
+set_programmer_flag(Id, Value) ->
+	update_object_flag(Id, ?OBJECT_PROG, Value).
+
+-spec is_readable(Id::objid()) -> boolean() | 'E_INVARG'.
+is_readable(Id) ->
+	is_object_flag_set(Id, ?OBJECT_READ).
+
+-spec set_read_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
+set_read_flag(Id, Value) ->
+	update_object_flag(Id, ?OBJECT_READ, Value).
+
+-spec is_writable(Id::objid()) -> boolean() | 'E_INVARG'.
+is_writable(Id) ->
+	is_object_flag_set(Id, ?OBJECT_WRITE).
+
+-spec set_write_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
+set_write_flag(Id, Value) ->
+	update_object_flag(Id, ?OBJECT_WRITE, Value).
+
+-spec is_fertile(Id::objid()) -> boolean() | 'E_INVARG'.
+is_fertile(Id) ->
+	is_object_flag_set(Id, ?OBJECT_FERTILE).
+
+-spec set_fertile_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
+set_fertile_flag(Id, Value) ->
+	update_object_flag(Id, ?OBJECT_FERTILE, Value).
+
+%%%============================================================================
+%%% Adding and removing properties, manipulating property values.
+%%%============================================================================
 
 %%-----------------------------------------------------------------------------
 %% @doc Returns a list of all (non-builtin) properties.
@@ -206,6 +277,21 @@ add_property(Id, Key, Value) ->
 	end.
 
 %%-----------------------------------------------------------------------------
+%% @doc Deletes property with Key from object with Id.
+%%-----------------------------------------------------------------------------
+delete_property(Id, Key) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> 
+			case lists:keyfind(Key, 1, Obj#object.props) of
+				false -> 'E_PROPNF';
+				{_Key, {_V, _Info}} ->
+					NewProps = proplists:delete(Key, Obj#object.props),
+					ets:insert(?TABLE_OBJECTS, Obj#object{props = NewProps})
+			end
+	end.
+
+%%-----------------------------------------------------------------------------
 %% @doc Returns the value of the object's property with specified key.
 %%-----------------------------------------------------------------------------
 -spec get_value(Id::objid(), Key::atom()) ->
@@ -216,6 +302,12 @@ get_value(Id, location) -> location(Id);
 get_value(Id, contents) -> contents(Id);
 get_value(Id, children) -> children(Id);
 get_value(Id, name) -> name(Id);
+get_value(Id, wizard) -> is_wizard(Id);
+get_value(Id, programmer) -> is_programmer(Id);
+get_value(Id, r) -> is_readable(Id);
+get_value(Id, w) -> is_writable(Id);
+get_value(Id, f) -> is_fertile(Id);
+get_value(Id, player) -> is_player(Id);
 get_value(Id, Key) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -240,6 +332,12 @@ set_value(_Id, location, _Value) -> 'E_INVARG';
 set_value(_Id, contents, _Value) -> 'E_INVARG';
 set_value(_Id, children, _Value) -> 'E_INVARG';
 set_value(Id, name, Value) -> rename(Id, Value);
+set_value(Id, wizard, Value) -> set_wizard_flag(Id, Value);
+set_value(Id, programmer, Value) -> set_programmer_flag(Id, Value);
+set_value(Id, r, Value) -> set_read_flag(Id, Value);
+set_value(Id, w, Value) -> set_write_flag(Id, Value);
+set_value(Id, f, Value) -> set_fertile_flag(Id, Value);
+set_value(Id, player, Value) -> set_player_flag(Id, Value);
 set_value(Id, Key, Value) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -255,7 +353,36 @@ set_value(Id, Key, Value) ->
 %%% Internal functions
 %%%============================================================================
 
+-spec is_object_flag_set(Id::objid(), Flag::integer()) -> 
+	'E_INVARG' | boolean().
+is_object_flag_set(Id, Flag) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> is_flag_set(Flag, Obj#object.flags)
+	end.
+
+-spec update_object_flag(Id::objid(), Flag::integer(), Value::boolean()) ->
+	'E_INVARG' | true.
+update_object_flag(Id, Flag, Value) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			NewFlags = update_flags(Flag, Value, Obj#object.flags),
+			ets:insert(?TABLE_OBJECTS, Obj#object{flags = NewFlags})
+	end.
+
 %% Used internally to keep track of object ids
 -spec update_counter(Key::atom(), Incr::integer()) -> integer().
 update_counter(Key, Incr) ->
 	ets:update_counter(?TABLE_COUNTERS, Key, Incr).
+
+-spec update_flags(Flag::integer(), Value::boolean(), Flags::integer()) -> 
+	NewFlags::integer().
+update_flags(Flag, Value, Flags) ->
+	case Value of 
+		true -> Flags bor Flag;
+		_ -> Flags band (bnot Flag)
+	end.
+
+is_flag_set(Flag, Flags) ->
+	Flags band Flag =:= Flag.
