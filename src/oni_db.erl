@@ -1,7 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @author Bas Pennings [http://themeticulousgeek.com]
 %%% @copyright 2013-2014 Bas Pennings
-%%% @doc Object store functions.
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_db).
@@ -12,7 +11,7 @@
 
 -record(object, {id, 
                  parent = nothing, 
-                 name = "",
+                 name = <<"">>,
                  location = nothing, 
                  props = [], 
                  verbs = [], 
@@ -58,6 +57,24 @@ valid(Id) ->
 	end.
 
 %%-----------------------------------------------------------------------------
+%% @doc Returns the name of object with id.
+%%-----------------------------------------------------------------------------
+-spec name(Id::objid()) -> binary().
+name(Id) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> Obj#object.name
+	end.
+
+-spec rename(Id::objid(), Name::binary()) -> 'E_INVARG' | true.
+rename(Id, Name) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			ets:insert(?TABLE_OBJECTS, Obj#object{name = Name})
+	end.
+
+%%-----------------------------------------------------------------------------
 %% @doc Changes the parent of the object with specified id.
 %%-----------------------------------------------------------------------------
 -spec chparent(Id::objid(), NewParent::objid()) -> true | 'E_INVARG'.
@@ -92,28 +109,6 @@ children(Id) ->
 		false -> ' E_INVARG';
 		true ->
 			M = [{#object{id = '$1', parent = Id, _='_'}, [], ['$1']}],
-			ets:select(?TABLE_OBJECTS, M)
-	end.
-
-%%-----------------------------------------------------------------------------
-%% @doc Returns the location of the object with specified id.
-%%-----------------------------------------------------------------------------
--spec location(Id::objid()) -> objid().
-location(Id) ->
-	case ets:lookup(?TABLE_OBJECTS, Id) of
-		[] -> 'E_INVARG';
-		[Obj] -> Obj#object.location
-	end.
-
-%%-----------------------------------------------------------------------------
-%% @doc Returns the objects that have their location set to specified id.
-%%-----------------------------------------------------------------------------
--spec contents(Id::objid()) ->	[objid()] | 'E_INVARG'.
-contents(Id) ->
-	case valid(Id) of
-		false -> 'E_INVARG';
-		true ->
-			M = [{#object{id = '$1', location = Id, _='_'}, [], ['$1']}],
 			ets:select(?TABLE_OBJECTS, M)
 	end.
 
@@ -160,6 +155,100 @@ move(What, Where) ->
 		{[], _} -> 'E_INVARG';
 		{_, false} -> 'E_INVARG';
 		{[Obj], _} -> ets:insert(?TABLE_OBJECTS, Obj#object{location = Where})
+	end.
+
+%%-----------------------------------------------------------------------------
+%% @doc Returns the location of the object with specified id.
+%%-----------------------------------------------------------------------------
+-spec location(Id::objid()) -> objid().
+location(Id) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> Obj#object.location
+	end.
+
+%%-----------------------------------------------------------------------------
+%% @doc Returns the objects that have their location set to specified id.
+%%-----------------------------------------------------------------------------
+-spec contents(Id::objid()) ->	[objid()] | 'E_INVARG'.
+contents(Id) ->
+	case valid(Id) of
+		false -> 'E_INVARG';
+		true ->
+			M = [{#object{id = '$1', location = Id, _='_'}, [], ['$1']}],
+			ets:select(?TABLE_OBJECTS, M)
+	end.
+
+
+%%-----------------------------------------------------------------------------
+%% @doc Returns a list of all (non-builtin) properties.
+%%-----------------------------------------------------------------------------
+-spec properties(Id::objid()) -> [atom()] | 'E_INVARG'.
+properties(Id) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> proplists:get_keys(Obj#object.props)
+	end.
+
+%%-----------------------------------------------------------------------------
+%% @doc Adds a property with Key and Value to object with Id.
+%%-----------------------------------------------------------------------------
+add_property(Id, Key, Value) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case lists:keyfind(Key, 1, Obj#object.props) of
+				false ->
+					NewProps = [{Key, {Value, []}}|Obj#object.props],
+					ets:insert(?TABLE_OBJECTS, Obj#object{props = NewProps});
+				_ -> 'E_INVARG'
+			end
+	end.
+
+%%-----------------------------------------------------------------------------
+%% @doc Returns the value of the object's property with specified key.
+%%-----------------------------------------------------------------------------
+-spec get_value(Id::objid(), Key::atom()) ->
+	'E_INVARG' | 'E_PROPNF' | any().
+get_value(Id, id) -> Id;
+get_value(Id, parent) -> parent(Id);
+get_value(Id, location) -> location(Id);
+get_value(Id, contents) -> contents(Id);
+get_value(Id, children) -> children(Id);
+get_value(Id, name) -> name(Id);
+get_value(Id, Key) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> 
+			case lists:keyfind(Key, 1, Obj#object.props) of 
+				false -> 'E_PROPNF';
+				{_Key, {V, _Info}} -> V
+			end
+	end.
+
+%%-----------------------------------------------------------------------------
+%% @doc Set's the value of the object's property with specified key.
+%%
+%% We'll return 'E_INVARG' if someone tries to set readonly properties. These
+%% properties should be manipulated with API functions in this module instead.
+%%-----------------------------------------------------------------------------
+-spec set_value(Id::objid(), Key::atom(), Value::any()) -> 
+	'E_INVARG' | 'E_PROPNF' | any().
+set_value(_Id, id, _Value) -> 'E_INVARG';
+set_value(_Id, parent, _Value) -> 'E_INVARG';
+set_value(_Id, location, _Value) -> 'E_INVARG';
+set_value(_Id, contents, _Value) -> 'E_INVARG';
+set_value(_Id, children, _Value) -> 'E_INVARG';
+set_value(Id, name, Value) -> rename(Id, Value);
+set_value(Id, Key, Value) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case lists:keyfind(Key, 1, Obj#object.props) of
+				false -> 'E_PROPNF';
+				{_Key, {_V, Info}} -> 
+					lists:keyreplace(Key, 1, {Key, {Value, Info}})
+			end
 	end.
 
 %%%============================================================================
