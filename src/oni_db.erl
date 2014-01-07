@@ -11,12 +11,12 @@
 -type objid() :: integer() | nothing.
 
 -record(object, {id, 
-				 parent = nothing, 
-				 name = "",
-				 location = nothing, 
-				 props = [], 
-				 verbs = [], 
-				 flags = 0}).
+                 parent = nothing, 
+                 name = "",
+                 location = nothing, 
+                 props = [], 
+                 verbs = [], 
+                 flags = 0}).
 
 -define(TABLE_OBJECTS, oni_objects).
 -define(TABLE_COUNTERS, oni_counters).
