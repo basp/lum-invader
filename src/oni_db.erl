@@ -11,7 +11,7 @@
 -type objid() :: integer() | nothing.
 
 -record(object, {id, 
-	             parent = nothing, 
+				 parent = nothing, 
 				 name = "",
 				 location = nothing, 
 				 props = [], 
