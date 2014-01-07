@@ -27,7 +27,7 @@ start_socket() ->
 init([]) ->
     {ok, Port} = application:get_env(port),
     {ok, ListenSocket} = gen_tcp:listen(Port, [{active, once}]),
-    spawn_link(fun empty_listeners/0),
+    spawn_link(fun ready_listeners/0),
     Strategy = {simple_one_for_one, 60, 3600},
     Spec = {socket, {oni_sockserv_serv, start_link, [ListenSocket]},
             temporary, 1000, worker, [oni_sockserv_serv]},
@@ -36,6 +36,6 @@ init([]) ->
 %%%============================================================================    
 %%% Internal functions
 %%%============================================================================
-empty_listeners() ->
+ready_listeners() ->
     [start_socket() || _ <- lists:seq(1, 20)],
     ok.
