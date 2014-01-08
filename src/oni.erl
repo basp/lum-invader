@@ -5,7 +5,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni).
 
--export([do_login/2, find_players/1, start/0, stop/0, notify/2, notify/3]).
+-export([do_login/2, start/0, stop/0, notify/2, notify/3]).
 
 %% @doc Default login handler
 do_login(Socket, {<<"connect">>, _Dobjstr, Argstr, _Args}) ->
@@ -16,10 +16,6 @@ do_login(Socket, {<<"connect">>, _Dobjstr, Argstr, _Args}) ->
 do_login(Socket, Command) ->
     notify(Socket, "~p", [Command]),
     nothing.
-
-%% @doc Finds all players with specified name (should be only one result).
-find_players(Name) ->
-    lists:filter(fun(Id) -> oni_db:name(Id) =:= Name end, oni_db:players()).
 
 %% @doc Starts the application.
 start() ->
@@ -35,5 +31,8 @@ notify(Socket, Str) ->
 
 %% @doc Send a format message to specified socket.
 notify(Socket, Str, Args) -> 
-    ok = gen_tcp:send(Socket, [io_lib:format(Str, Args), <<$\r, $\n>>]),
+    ok = gen_tcp:send(Socket, [<<27, $[, $3, $4, $m>>, io_lib:format(Str, Args), <<27, $[, $0, $m>>, <<$\r, $\n>>]),
     ok = inet:setopts(Socket, [{active, once}, {mode, binary}]).
+
+find_players(Name) ->
+    lists:filter(fun(Id) -> oni_db:name(Id) =:= Name end, oni_db:players()).
