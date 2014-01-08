@@ -1,15 +1,17 @@
 %%%----------------------------------------------------------------------------
 %%% @author Bas Pennings [http://themeticulousgeek.com]
 %%% @copyright 2013-2014 Bas Pennings
-%%% @doc Database API.
+%%% @doc Manipulating the world.
+%%%
+%%% This is the API to manipulating objects and their properties.
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_db).
 
 -include_lib("stdlib/include/qlc.hrl").
 
--export([init/0, create/1, valid/1, name/1, rename/2, chparent/2, 
-         parent/1, children/1, recycle/1, max_object/0, move/2, 
+-export([init/0, create_wiz/2, create/1, valid/1, name/1, rename/2, 
+		 chparent/2, parent/1, children/1, recycle/1, max_object/0, move/2, 
          location/1, contents/1, players/0, is_player/1,
          set_player_flag/2, is_wizard/1, set_wizard_flag/2, 
          is_programmer/1, set_programmer_flag/2, is_readable/1,
@@ -37,7 +39,10 @@
 -define(OBJECT_FERTILE,	2#000010).
 -define(OBJECT_PLAYER,	2#000001).
 
--type objid() :: integer() | nothing.
+%% Maybe this should be an opaque type wrapping the integer() instead...
+-type objid() :: integer().
+
+-export_type([objid/0]).
 
 %%%============================================================================
 %%% Initializing the world database
@@ -51,6 +56,14 @@ init() ->
 	%% Keeps track of max object id and any other counters
 	ets:new(?TABLE_COUNTERS, [set, named_table, public]),
 	ets:insert(?TABLE_COUNTERS, {max_id, 0}).
+
+%% @doc Utility method to create initial player (wizard).
+-spec create_wiz(Parent::objid(), Name::binary()) -> objid().
+create_wiz(Parent, Name) ->
+    Id = oni_db:create(Parent),
+    oni_db:set_player_flag(Id, true),
+    oni_db:set_wizard_flag(Id, true),
+    oni_db:rename(Id, Name).
 
 %%%============================================================================
 %%% Core object manipulation.

@@ -8,6 +8,7 @@
 
 -record(state, {listener, 
                 next, 
+                bindings = [],
                 player = nothing}).
 
 %% API
@@ -18,6 +19,7 @@
          terminate/2, code_change/3]).
 
 -define(MSG_CONNECT, <<"$bold;$fg_magenta;Oni $fg_yellow;[$fg_cyan;lum invader$fg_yellow;]$reset;">>).
+-define(INVALID_CMD, <<"That doesn't seem right.">>).
 
 %%%============================================================================    
 %%% API 
@@ -49,18 +51,35 @@ handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
     case oni:do_login(Socket, Command) of
         nothing -> {noreply, S};
         Player -> 
+            oni_who:insert_connection(Player, Socket),
             oni_event:player_connected(Socket, Player),
             {noreply, S#state{next = connected, player = Player}}
     end;
+handle_info({tcp, Socket, <<";", Data/binary>>},
+             S = #state{next = connected, player = Player, bindings = Bindings}) ->
+    case oni_db:is_wizard(Player) of
+        true -> 
+            {Str, NewBindings} = oni:eval_to_str(Data, Bindings),
+            oni:notify(Socket, Str),
+            {noreply, S#state{bindings = NewBindings}};
+        false -> 
+            oni:notify(Socket, ?INVALID_CMD),
+            {noreply, S}
+    end;
 handle_info({tcp, Socket, Data}, 
-             S = #state{next = connected, player = _Player}) ->
+        S = #state{next = connected, player = _Player }) ->
     Command = oni_cmd:parse(Data),
     oni:notify(Socket, "~p", [Command]),
     {noreply, S};
-handle_info({tcp_closed, Socket}, State) ->
+handle_info({tcp_closed, Socket}, 
+             S = #state{next = connected, player = Player}) ->
+    oni_who:delete_connection(Player),
     oni_event:disconnected(Socket),
-    {stop, normal, State}.
-
+    {stop, normal, S};
+handle_info({tcp_closed, Socket}, S) ->
+    oni_event:disconnected(Socket),
+    {stop, normal, S}.
+    
 terminate(_Reason, _State) ->
     ok.
 
