@@ -8,14 +8,17 @@
 -compile(export_all).
 
 %% Default login handler
-do_login(Socket, Command = {<<"connect">>, _Dobjstr, Argstr, _Args}) ->
-    notify(Socket, "Login with ~p", [Argstr]),
-    %% TODO: Get player from db, add return player id
-    notify(Socket, "~p", [Command]),
-    nothing;
+do_login(Socket, {<<"connect">>, _Dobjstr, Argstr, _Args}) ->
+    case find_players(Argstr) of
+        [] -> notify(Socket, "Invalid player or password."), nothing;
+        [Id] -> notify(Socket, "*** connected (~s) ***", [Argstr]), Id
+    end;
 do_login(Socket, Command) ->
     notify(Socket, "~p", [Command]),
     nothing.
+
+find_players(Name) ->
+    lists:filter(fun(Id) -> oni_db:name(Id) =:= Name end, oni_db:players()).
 
 %% Application control
 start() ->
@@ -30,7 +33,4 @@ notify(Socket, Str) ->
 
 notify(Socket, Str, Args) -> 
     ok = gen_tcp:send(Socket, [io_lib:format(Str, Args), <<$\r, $\n>>]),
-    %% We'll just set opts after each notify, we explicitly set mode 
-    %% to binary because we like to parse the raw bytes for speed.
-    %% This also means we don't support unicode for input.
     ok = inet:setopts(Socket, [{active, once}, {mode, binary}]).
