@@ -39,6 +39,9 @@ handle_event({connected, Socket}, State) ->
     {ok, State};
 handle_event({disconnected, Socket}, State) ->
     error_logger:info_msg("~p disconnected~n", [Socket]),
+    {ok, State};
+handle_event({player_connected, Socket, Player}, State) ->
+    error_logger:info_msg("Player ~p connected on ~p~n", [Player, Socket]),
     {ok, State}.
 
 handle_call(_Request, State) ->

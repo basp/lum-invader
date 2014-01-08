@@ -8,7 +8,7 @@
 
 -record(state, {listener, 
                 next, 
-                login_handler = {oni, defaut_login_handler, []}}).
+                player = nothing}).
 
 %% API
 -export([start_link/1]).
@@ -20,12 +20,14 @@
 %%%============================================================================    
 %%% API 
 %%%============================================================================
+
 start_link(Socket) ->
     gen_server:start_link(?MODULE, Socket, []).
 
 %%%============================================================================    
 %%% gen_server callbacks
 %%%============================================================================
+
 init(Socket) ->
     gen_server:cast(self(), accept),
     {ok, #state{listener = Socket}}.
@@ -44,8 +46,15 @@ handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
     Command = oni_cmd:parse(Data),
     case oni:do_login(Socket, Command) of
         nothing -> {noreply, S};
-        _ -> {noreply, S}
+        Player -> 
+            oni_event:player_connected(Socket, Player),
+            {noreply, S#state{next = connected, player = Player}}
     end;
+handle_info({tcp, Socket, Data}, 
+             S = #state{next = connected, player = _Player}) ->
+    Command = oni_cmd:parse(Data),
+    oni:notify(Socket, "~p", [Command]),
+    {noreply, S};
 handle_info({tcp_closed, Socket}, State) ->
     oni_event:disconnected(Socket),
     {stop, normal, State}.
