@@ -23,24 +23,24 @@
 -define(STRIKETHROUGH_OFF,  <<27, $[, $2, $9, $m>>).
 
 -define(FG_BLACK,           <<27, $[, $3, $0, $m>>).
--define(FG_RED,	            <<27, $[, $3, $1, $m>>).
+-define(FG_RED,             <<27, $[, $3, $1, $m>>).
 -define(FG_GREEN,           <<27, $[, $3, $2, $m>>).
 -define(FG_YELLOW,          <<27, $[, $3, $3, $m>>).
 -define(FG_BLUE,            <<27, $[, $3, $4, $m>>).
--define(FG_MAGENTA,	        <<27, $[, $3, $5, $m>>).
+-define(FG_MAGENTA,         <<27, $[, $3, $5, $m>>).
 -define(FG_CYAN,            <<27, $[, $3, $6, $m>>).
 -define(FG_WHITE,           <<27, $[, $3, $7, $m>>).
--define(FG_DEFAULT,	        <<27, $[, $3, $9, $m>>).
+-define(FG_DEFAULT,         <<27, $[, $3, $9, $m>>).
 
 -define(BG_BLACK,           <<27, $[, $4, $0, $m>>).
--define(BG_RED,	            <<27, $[, $4, $1, $m>>).
+-define(BG_RED,             <<27, $[, $4, $1, $m>>).
 -define(BG_GREEN,           <<27, $[, $4, $2, $m>>).
 -define(BG_YELLOW,          <<27, $[, $4, $3, $m>>).
 -define(BG_BLUE,            <<27, $[, $4, $4, $m>>).
 -define(BG_MAGENTA,         <<27, $[, $4, $5, $m>>).
 -define(BG_CYAN,            <<27, $[, $4, $6, $m>>).
 -define(BG_WHITE,           <<27, $[, $4, $7, $m>>).
--define(BG_DEFAULT,	        <<27, $[, $4, $9, $m>>).
+-define(BG_DEFAULT,         <<27, $[, $4, $9, $m>>).
 
 %%%============================================================================
 %%% API
