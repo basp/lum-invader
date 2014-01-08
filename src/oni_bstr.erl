@@ -19,16 +19,6 @@
 
 %%-----------------------------------------------------------------------------
 %% @doc Tries to match the prefix on a list of binary strings.
-%% 
-%% This will return the atom ambiguous when it finds to similar things. 
-%% Naturally, the search will be more exact (and also more expensive) when 
-%% the prefix is longer.
-%%
-%% Basically this just calls starts_with on all the items and if it finds
-%% exactly one match it will return that item. If nothing is found, it will
-%% return nothing. If more than one item is found then the tuple of
-%% {ambiguous, [Match1, Match2]} will be returned. It will stop immediately
-%% after finding a second match.
 %%-----------------------------------------------------------------------------
 -spec match(Prefix::binary(), List::binary()) -> match().
 match(Prefix, List) ->
