@@ -128,35 +128,35 @@ style(Data, Acc) ->
 strip(<<>>, Acc) -> Acc;
 strip(Data, Acc) ->
 	case Data of
-		<<"$reset;", Rest/binary>> -> 				strip(Rest, Acc);
-		<<"$bold;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$italics;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$underline;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$inverse;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$strikethrough;", Rest/binary>> ->		strip(Rest, Acc);
-		<<"$bold_off;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$italics_off;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$underline_off;", Rest/binary>> ->		strip(Rest, Acc);
-		<<"$inverse_off;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$strikethrough_off;", Rest/binary>> ->	strip(Rest, Acc);
-		<<"$fg_black;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$fg_red;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$fg_green;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$fg_yellow;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$fg_blue;", Rest/binary>> -> 			strip(Rest, Acc);
-		<<"$fg_magenta;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$fg_cyan;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$fg_white;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$fg_default;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$bg_black;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$bg_red;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$bg_green;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$bg_yellow;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$bg_blue;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$bg_magenta;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$bg_cyan;", Rest/binary>> ->				strip(Rest, Acc);
-		<<"$bg_white;", Rest/binary>> ->			strip(Rest, Acc);
-		<<"$bg_default;", Rest/binary>> ->			strip(Rest, Acc);
+		<<"$reset;", Rest/binary>>                -> strip(Rest, Acc);
+		<<"$bold;", Rest/binary>>                 -> strip(Rest, Acc);
+		<<"$italics;", Rest/binary>>              -> strip(Rest, Acc);
+		<<"$underline;", Rest/binary>>            -> strip(Rest, Acc);
+		<<"$inverse;", Rest/binary>>              -> strip(Rest, Acc);
+		<<"$strikethrough;", Rest/binary>>        -> strip(Rest, Acc);
+		<<"$bold_off;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$italics_off;", Rest/binary>>          -> strip(Rest, Acc);
+		<<"$underline_off;", Rest/binary>>        -> strip(Rest, Acc);
+		<<"$inverse_off;", Rest/binary>>          -> strip(Rest, Acc);
+		<<"$strikethrough_off;", Rest/binary>>    -> strip(Rest, Acc);
+		<<"$fg_black;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$fg_red;", Rest/binary>>               -> strip(Rest, Acc);
+		<<"$fg_green;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$fg_yellow;", Rest/binary>>            -> strip(Rest, Acc);
+		<<"$fg_blue;", Rest/binary>>              -> strip(Rest, Acc);
+		<<"$fg_magenta;", Rest/binary>>           -> strip(Rest, Acc);
+		<<"$fg_cyan;", Rest/binary>>              -> strip(Rest, Acc);
+		<<"$fg_white;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$fg_default;", Rest/binary>>           -> strip(Rest, Acc);
+		<<"$bg_black;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$bg_red;", Rest/binary>>               -> strip(Rest, Acc);
+		<<"$bg_green;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$bg_yellow;", Rest/binary>>            -> strip(Rest, Acc);
+		<<"$bg_blue;", Rest/binary>>              -> strip(Rest, Acc);
+		<<"$bg_magenta;", Rest/binary>>           -> strip(Rest, Acc);
+		<<"$bg_cyan;", Rest/binary>>              -> strip(Rest, Acc);
+		<<"$bg_white;", Rest/binary>>             -> strip(Rest, Acc);
+		<<"$bg_default;", Rest/binary>>           -> strip(Rest, Acc);
 		<<C, Rest/binary>> ->
 			strip(Rest, <<Acc/binary, C>>)
 	end.
