@@ -31,7 +31,7 @@ notify(Socket, Str) ->
 
 %% @doc Send a format message to specified socket.
 notify(Socket, Str, Args) -> 
-    ok = gen_tcp:send(Socket, [<<27, $[, $3, $4, $m>>, io_lib:format(Str, Args), <<27, $[, $0, $m>>, <<$\r, $\n>>]),
+    ok = gen_tcp:send(Socket, [io_lib:format(Str, Args), <<$\r, $\n>>]),
     ok = inet:setopts(Socket, [{active, once}, {mode, binary}]).
 
 find_players(Name) ->
