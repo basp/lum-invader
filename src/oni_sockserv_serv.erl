@@ -1,6 +1,5 @@
 %%%----------------------------------------------------------------------------
-%%% @author Bas Pennings [http://themeticulousgeek.com]
-%%% @copyright 2013-2014 Bas Pennings
+%%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_sockserv_serv).
@@ -63,6 +62,18 @@ handle_info({tcp, Socket, <<";", Data/binary>>},
             oni:notify(Socket, Str),
             {noreply, S#state{bindings = NewBindings}};
         false -> 
+            oni:notify(Socket, ?INVALID_CMD),
+            {noreply, S}
+    end;
+handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
+    {stop, normal, S};
+handle_info({tcp, Socket, <<"@reset", _/binary>>}, 
+             S = #state{next = connected, player = Player}) ->
+    case oni_db:is_wizard(Player) of
+        true ->
+            oni:notify(Socket, <<"Environment reset.">>),
+            {noreply, S#state{bindings = []}};
+        false ->
             oni:notify(Socket, ?INVALID_CMD),
             {noreply, S}
     end;

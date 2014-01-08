@@ -1,6 +1,5 @@
 %%%----------------------------------------------------------------------------
-%%% @author Bas Pennings [http://themeticulousgeek.com]
-%%% @copyright 2013-2014 Bas Pennings
+%%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Manipulating the world.
 %%%
 %%% This is the API to manipulating objects and their properties.
@@ -57,7 +56,15 @@ init() ->
 	ets:new(?TABLE_COUNTERS, [set, named_table, public]),
 	ets:insert(?TABLE_COUNTERS, {max_id, 0}).
 
-%% @doc Utility method to create initial player (wizard).
+%% @doc Utility method to create initial player (wizard). 
+%%
+%% This function is here for development and meant to be called from the shell.
+%% It's useful to bootstrap the first connection after sstarting the application 
+%% but that is really the only way it should be used.
+%%
+%% Also, it's useful as an example of the sequence of expressions that have 
+%% to be evaluated in order to set the wizard state for an object.
+%% @end
 -spec create_wiz(Parent::objid(), Name::binary()) -> objid().
 create_wiz(Parent, Name) ->
     Id = oni_db:create(Parent),

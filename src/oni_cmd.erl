@@ -1,6 +1,5 @@
 %%%----------------------------------------------------------------------------
-%%% @author Bas Pennings [http://themeticulousgeek.com]
-%%% @copyright 2013-2014 Bas Pennings
+%%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Command parser.
 %%% @end
 %%%----------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 %%%----------------------------------------------------------------------------
-%%% @author Bas Pennings [http://themeticulousgeek.com]
-%%% @copyright 2013-2014 Bas Pennings
+%%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Utility functions for working with binary strings.
 %%% @end
 %%%----------------------------------------------------------------------------
@@ -51,20 +50,22 @@ trim_end(Data) ->
 -spec trim(Data::binary()) -> binary().
 trim(Data) ->
 	trim_end(trim_start(Data)).
+
 %% @doc Performs pronoun substitution.
-%%
-%% %s 	ps 		subjective pronoun (he, she, it)
-%% %o 	po 		objective pronoun (him, her, it)
+%% ```
+%% %s   ps      subjective pronoun (he, she, it)
+%% %o   po      objective pronoun (him, her, it)
 %% %p   pp      possessive pronoun (his, her, its)   	
-%% %r  	pr 		reflexive pronoun (himself, herself, itself)
-%% %q   pq 		possessive (noun) (his, hers, its)
+%% %r   pr      reflexive pronoun (himself, herself, itself)
+%% %q   pq      possessive (noun) (his, hers, its)
 %% %S   psc     capitalized versions of the above
 %% %O   poc
 %% %P   ppc
 %% %R   prc
 %% %Q   pqc
-%% %n 	name 	name of the player object
+%% %n   name    name of the player object
 %% %%   %       double up to escape
+%% '''
 %% @end
 -spec ps(Data::binary(), Who::[term()]) -> binary().
 ps(Data, Who) ->
