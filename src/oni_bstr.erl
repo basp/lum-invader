@@ -17,16 +17,12 @@
 %%% API
 %%%============================================================================
 
-%%-----------------------------------------------------------------------------
 %% @doc Tries to match the prefix on a list of binary strings.
-%%-----------------------------------------------------------------------------
 -spec match(Prefix::binary(), List::binary()) -> match().
 match(Prefix, List) ->
 	match(Prefix, List, nothing).
 
-%%-----------------------------------------------------------------------------
 %% @doc Checks whether a binary starts with a particular prefix.
-%%-----------------------------------------------------------------------------
 -spec starts_with(Prefix::binary(), Data::binary()) -> boolean().
 starts_with(<<>>, _) ->
 	true;
@@ -37,9 +33,7 @@ starts_with(<<X, _/binary>>, <<Y, _/binary>>)
 starts_with(<<_, RestX/binary>>, <<_, RestY/binary>>) ->
 	starts_with(RestX, RestY).
 
-%%-----------------------------------------------------------------------------
 %% @doc Removes beginning whitespace.
-%%-----------------------------------------------------------------------------
 -spec trim_start(Data::binary()) -> binary().
 trim_start(<<>>) -> 
 	<<>>;
@@ -48,44 +42,32 @@ trim_start(<<C, Rest/binary>>)
 trim_start(Data) ->
 	Data.
 
-%%-----------------------------------------------------------------------------
 %% @doc Removes trailing whitespace.
-%%-----------------------------------------------------------------------------
 -spec trim_end(Data::binary()) -> binary().
 trim_end(Data) ->
 	trim_end(Data, <<>>, <<>>).
 
-%%-----------------------------------------------------------------------------
 %% @doc Removes beginning and trailing whitespace.
-%%-----------------------------------------------------------------------------
 -spec trim(Data::binary()) -> binary().
 trim(Data) ->
 	trim_end(trim_start(Data)).
 
-%%-----------------------------------------------------------------------------
 %% @doc Performs pronoun substitution.
-%%-----------------------------------------------------------------------------
 -spec ps(Data::binary(), Who::[term()]) -> binary().
 ps(Data, Who) ->
 	ps(Data, Who, <<>>).
 
-%%-----------------------------------------------------------------------------
 %% @doc Joins the binaries using a space character as separator.
-%%-----------------------------------------------------------------------------
 -spec join(List::[binary()]) -> binary().
 join(Binaries) ->
 	join(Binaries, <<$\s>>).
 
-%%-----------------------------------------------------------------------------
 %% @doc Joins the binaries using Sep as separator.
-%%-----------------------------------------------------------------------------
 -spec join(List::[binary()], Sep::binary()) -> binary().
 join(Binaries, Sep) ->
 	join(Binaries, Sep, Sep).
 
-%%-----------------------------------------------------------------------------
 %% @doc Joins the binaries using LastSep for the last element.
-%%-----------------------------------------------------------------------------
 -spec join(List::[binary()], Sep::binary(), LastSep::binary()) -> binary().
 join(Binaries, Sep, LastSep) ->
 	join(Binaries, Sep, LastSep, <<>>).

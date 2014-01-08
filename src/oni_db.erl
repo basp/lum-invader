@@ -2,15 +2,20 @@
 %%% @author Bas Pennings [http://themeticulousgeek.com]
 %%% @copyright 2013-2014 Bas Pennings
 %%% @doc Database API.
-%%%
-%%% TODO: This is becoming a bit unwieldy and verbose, it needs some TLC. 
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_db).
 
 -include_lib("stdlib/include/qlc.hrl").
 
--compile(export_all).
+-export([init/0, create/1, valid/1, name/1, rename/2, chparent/2, 
+         parent/1, children/1, recycle/1, max_object/0, move/2, 
+         location/1, contents/1, players/0, is_player/1,
+         set_player_flag/2, is_wizard/1, set_wizard_flag/2, 
+         is_programmer/1, set_programmer_flag/2, is_readable/1,
+         set_read_flag/2, is_writable/1, set_write_flag/2, 
+         is_fertile/1, set_fertile_flag/2, properties/1,
+         add_property/3, delete_property/2, get_value/2, set_value/3]).
 
 -record(object, {id, 
                  parent = nothing, 
@@ -38,12 +43,10 @@
 %%% Initializing the world database
 %%%============================================================================
 
-%%-----------------------------------------------------------------------------
 %% @doc Initializes the object table.
-%%-----------------------------------------------------------------------------
 init() ->
 	%% Stores all the objects that we know about
-	ets:new(?TABLE_OBJECTS, [ordered_set, {keypos, #object.id}, named_table, public]),
+	ets:new(?TABLE_OBJECTS, [set, {keypos, #object.id}, named_table, public]),
 	ets:insert(?TABLE_OBJECTS, #object{id = 0}),
 	%% Keeps track of max object id and any other counters
 	ets:new(?TABLE_COUNTERS, [set, named_table, public]),
@@ -53,18 +56,14 @@ init() ->
 %%% Core object manipulation.
 %%%============================================================================
 
-%%-----------------------------------------------------------------------------
 %% @doc Creates a new object and returns the id of the newly created object.
-%%-----------------------------------------------------------------------------
 -spec create(Parent::objid()) -> objid().
 create(Parent) ->
 	Id = update_counter(max_id, 1),
 	ets:insert(?TABLE_OBJECTS, #object{id = Id, parent = Parent}),
 	Id.
 
-%%-----------------------------------------------------------------------------
 %% @doc Determines whether the given object id belongs to an existing object.
-%%-----------------------------------------------------------------------------
 -spec valid(Id::objid()) -> boolean().
 valid(Id) when Id < 0 -> 
 	false;
@@ -74,9 +73,7 @@ valid(Id) ->
 		_ -> true
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the name of object with id.
-%%-----------------------------------------------------------------------------
 -spec name(Id::objid()) -> binary().
 name(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -84,6 +81,7 @@ name(Id) ->
 		[Obj] -> Obj#object.name
 	end.
 
+%% @doc Sets the name of object with id.
 -spec rename(Id::objid(), Name::binary()) -> 'E_INVARG' | true.
 rename(Id, Name) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -92,9 +90,7 @@ rename(Id, Name) ->
 			ets:insert(?TABLE_OBJECTS, Obj#object{name = Name})
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Changes the parent of the object with specified id.
-%%-----------------------------------------------------------------------------
 -spec chparent(Id::objid(), NewParent::objid()) -> true | 'E_INVARG'.
 chparent(Id, NewParent) when NewParent =:= nothing ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -108,9 +104,7 @@ chparent(Id, NewParent) ->
 		{[Obj], _} -> ets:insert(?TABLE_OBJECTS, Obj#object{parent = NewParent})
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the parent of the object with specified id.
-%%-----------------------------------------------------------------------------
 -spec parent(Id::objid()) -> objid().
 parent(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -118,9 +112,7 @@ parent(Id) ->
 		[Obj] -> Obj#object.parent
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the objects that have their parent set to specified id.
-%%-----------------------------------------------------------------------------
 -spec children(Id::objid()) -> [objid()] | 'E_INVARG'.
 children(Id) ->
 	case valid(Id) of 
@@ -130,7 +122,6 @@ children(Id) ->
 			ets:select(?TABLE_OBJECTS, M)
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Destroys the object with specified id.
 %%
 %% The contents of the destroyed object will have their location set to
@@ -139,7 +130,7 @@ children(Id) ->
 %% Note that we explicitly don't manipulate the max_id counter here - we want 
 %% old ids to point to invalid objects and not to have them silently replaced
 %% by a completely new object with an old id.
-%%-----------------------------------------------------------------------------
+%% @end
 -spec recycle(Id::objid()) -> true | 'E_INVARG'.
 recycle(Id) ->
 	case valid(Id) of
@@ -149,9 +140,7 @@ recycle(Id) ->
 			ets:delete(?TABLE_OBJECTS, Id)
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the largest object id assigned to an object.
-%%-----------------------------------------------------------------------------
 -spec max_object() -> objid().
 max_object() ->
 	case ets:lookup(?TABLE_COUNTERS, max_id) of
@@ -159,9 +148,7 @@ max_object() ->
 		[{max_id, Id}] -> Id
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Moves what to where.
-%%-----------------------------------------------------------------------------
 -spec move(What::objid(), Where::objid()) -> true | 'E_INVARG'.
 move(What, Where) when Where =:= nothing ->
 	case ets:lookup(?TABLE_OBJECTS, What) of
@@ -175,9 +162,7 @@ move(What, Where) ->
 		{[Obj], _} -> ets:insert(?TABLE_OBJECTS, Obj#object{location = Where})
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the location of the object with specified id.
-%%-----------------------------------------------------------------------------
 -spec location(Id::objid()) -> objid().
 location(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -185,9 +170,7 @@ location(Id) ->
 		[Obj] -> Obj#object.location
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the objects that have their location set to specified id.
-%%-----------------------------------------------------------------------------
 -spec contents(Id::objid()) ->	[objid()] | 'E_INVARG'.
 contents(Id) ->
 	case valid(Id) of
@@ -197,9 +180,7 @@ contents(Id) ->
 			ets:select(?TABLE_OBJECTS, M)
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns a list of all objects that have the player flag set.
-%%-----------------------------------------------------------------------------
 -spec players() -> [objid()].
 players() ->
 	Q = qlc:q([O#object.id || 
@@ -210,50 +191,62 @@ players() ->
 %%% Manipulating object flags.
 %%%============================================================================
 
+%% @doc Determines whether the given object has its player flag set.
 -spec is_player(Id::objid()) -> boolean() | 'E_INVARG'.
 is_player(Id) -> 
 	is_object_flag_set(Id, ?OBJECT_PLAYER).
 
+%% @doc Sets the player flag on the given object.
 -spec set_player_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
 set_player_flag(Id, Value) -> 
 	update_object_flag(Id, ?OBJECT_PLAYER, Value).
 
+%% @doc Determines whether the given object has its wizard flag set.
 -spec is_wizard(Id::objid()) -> boolean() | 'E_INVARG'.
 is_wizard(Id) ->
 	is_object_flag_set(Id, ?OBJECT_WIZARD).
 
+%% @doc Sets the wizard flag on the given object.
 -spec set_wizard_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
 set_wizard_flag(Id, Value) ->
 	update_object_flag(Id, ?OBJECT_WIZARD, Value).
 
+%% @doc Determines whether the given object has its programmer flag set.
 -spec is_programmer(Id::objid()) -> boolean() | 'E_INVARG'.
 is_programmer(Id) ->
 	is_object_flag_set(Id, ?OBJECT_PROG).
 
+%% @doc Sets the programmer flag on the given object.
 -spec set_programmer_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
 set_programmer_flag(Id, Value) ->
 	update_object_flag(Id, ?OBJECT_PROG, Value).
 
+%% @doc Determines whether the given object has its read flag set.
 -spec is_readable(Id::objid()) -> boolean() | 'E_INVARG'.
 is_readable(Id) ->
 	is_object_flag_set(Id, ?OBJECT_READ).
 
+%% @doc Sets the read flag on the given object.
 -spec set_read_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
 set_read_flag(Id, Value) ->
 	update_object_flag(Id, ?OBJECT_READ, Value).
 
+%% @doc Determines whether the given object has its write flag set.
 -spec is_writable(Id::objid()) -> boolean() | 'E_INVARG'.
 is_writable(Id) ->
 	is_object_flag_set(Id, ?OBJECT_WRITE).
 
+%% @doc Sets the write flag on the given object.
 -spec set_write_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
 set_write_flag(Id, Value) ->
 	update_object_flag(Id, ?OBJECT_WRITE, Value).
 
+%% @doc Determines whether the given object has its fertile flag set.
 -spec is_fertile(Id::objid()) -> boolean() | 'E_INVARG'.
 is_fertile(Id) ->
 	is_object_flag_set(Id, ?OBJECT_FERTILE).
 
+%% @doc Sets the fertile flag on the given object.
 -spec set_fertile_flag(Id::objid(), Value::boolean()) -> true | 'E_INVARG'.
 set_fertile_flag(Id, Value) ->
 	update_object_flag(Id, ?OBJECT_FERTILE, Value).
@@ -262,9 +255,7 @@ set_fertile_flag(Id, Value) ->
 %%% Adding and removing properties, manipulating property values.
 %%%============================================================================
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns a list of all (non-builtin) properties.
-%%-----------------------------------------------------------------------------
 -spec properties(Id::objid()) -> [atom()] | 'E_INVARG'.
 properties(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -272,9 +263,7 @@ properties(Id) ->
 		[Obj] -> proplists:get_keys(Obj#object.props)
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Adds a property with Key and Value to object with Id.
-%%-----------------------------------------------------------------------------
 add_property(Id, Key, Value) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -287,9 +276,7 @@ add_property(Id, Key, Value) ->
 			end
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Deletes property with Key from object with Id.
-%%-----------------------------------------------------------------------------
 delete_property(Id, Key) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -302,9 +289,7 @@ delete_property(Id, Key) ->
 			end
 	end.
 
-%%-----------------------------------------------------------------------------
 %% @doc Returns the value of the object's property with specified key.
-%%-----------------------------------------------------------------------------
 -spec get_value(Id::objid(), Key::atom()) ->
 	'E_INVARG' | 'E_PROPNF' | any().
 get_value(Id, id) -> Id;
@@ -329,12 +314,11 @@ get_value(Id, Key) ->
 			end
 	end.
 
-%%-----------------------------------------------------------------------------
-%% @doc Set's the value of the object's property with specified key.
+%% @doc Sets the value of the object's property with specified key.
 %%
 %% We'll return 'E_INVARG' if someone tries to set readonly properties. These
 %% properties should be manipulated with API functions in this module instead.
-%%-----------------------------------------------------------------------------
+%% @end
 -spec set_value(Id::objid(), Key::atom(), Value::any()) -> 
 	'E_INVARG' | 'E_PROPNF' | any().
 set_value(_Id, id, _Value) -> 'E_INVARG';

@@ -1,5 +1,6 @@
 Mnesia.*
 doc
+.vagrant
 .eunit
 deps
 *.o
