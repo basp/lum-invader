@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------------
 %%% @author Bas Pennings [http://themeticulousgeek.com]
 %%% @copyright 2013-2014 Bas Pennings
-%%% @doc Command parser.
+%%% @doc ANSI color support.
 %%% @end
 %%%----------------------------------------------------------------------------
 -module(oni_ansi).

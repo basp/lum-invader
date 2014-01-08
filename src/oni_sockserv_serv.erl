@@ -17,6 +17,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, 
          terminate/2, code_change/3]).
 
+-define(MSG_CONNECT, <<"$bold;$fg_magenta;Oni $fg_yellow;[$fg_cyan;lum invader$fg_yellow;]$reset;">>).
+
 %%%============================================================================    
 %%% API 
 %%%============================================================================
@@ -39,7 +41,7 @@ handle_cast(accept, S = #state{listener = ListenSocket}) ->
     {ok, AcceptSocket} = gen_tcp:accept(ListenSocket),
     oni_sockserv_sup:start_socket(),
     oni_event:connected(AcceptSocket),
-    oni:notify(AcceptSocket, "Oni [Lum Invader]"),
+    oni:notify(AcceptSocket, oni_ansi:style(?MSG_CONNECT)),
     {noreply, S#state{next = login}}.
     
 handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
