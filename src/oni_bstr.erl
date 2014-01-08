@@ -51,23 +51,49 @@ trim_end(Data) ->
 -spec trim(Data::binary()) -> binary().
 trim(Data) ->
 	trim_end(trim_start(Data)).
-
 %% @doc Performs pronoun substitution.
+%%
+%% %s 	ps 		subjective pronoun (he, she, it)
+%% %o 	po 		objective pronoun (him, her, it)
+%% %p   pp      possessive pronoun (his, her, its)   	
+%% %r  	pr 		reflexive pronoun (himself, herself, itself)
+%% %q   pq 		possessive (noun) (his, hers, its)
+%% %S   psc     capitalized versions of the above
+%% %O   poc
+%% %P   ppc
+%% %R   prc
+%% %Q   pqc
+%% %n 	name 	name of the player object
+%% %%   %       double up to escape
+%% @end
 -spec ps(Data::binary(), Who::[term()]) -> binary().
 ps(Data, Who) ->
 	ps(Data, Who, <<>>).
 
 %% @doc Joins the binaries using a space character as separator.
+%%
+%% This is used by the command parser to join back individual tokens and
+%% normalize input. The join/2 and and join/3 functions are usually more
+%% useful.
+%% @end
 -spec join(List::[binary()]) -> binary().
 join(Binaries) ->
 	join(Binaries, <<$\s>>).
 
 %% @doc Joins the binaries using Sep as separator.
+%%
+%% Used to create nicely formatted lists such as "foo, bar, quux".
+%% @end
 -spec join(List::[binary()], Sep::binary()) -> binary().
 join(Binaries, Sep) ->
 	join(Binaries, Sep, Sep).
 
 %% @doc Joins the binaries using LastSep for the last element.
+%%
+%% Useful to create even more nicely formatted lists such as "foo, bar 
+%% and quux". Note the " and " token used as the LastSep in this
+%% case.
+%% @end
 -spec join(List::[binary()], Sep::binary(), LastSep::binary()) -> binary().
 join(Binaries, Sep, LastSep) ->
 	join(Binaries, Sep, LastSep, <<>>).
