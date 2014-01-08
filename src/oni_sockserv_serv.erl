@@ -72,6 +72,7 @@ handle_cast(accept, S = #state{listener = ListenSocket}) ->
     {noreply, S#state{next = login}}.
     
 handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
+    %% Handle @quit early so we don't depend on too much matching state.
     {stop, normal, S};
 handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
     Command = oni_cmd:parse(Data),
@@ -81,17 +82,6 @@ handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
             oni_who:insert_connection(Player, Socket),
             oni_event:player_connected(Socket, Player),
             {noreply, S#state{next = connected, player = Player}}
-    end;
-handle_info({tcp, Socket, <<";", Data/binary>>},
-             S = #state{next = connected, player = Player, bindings = Bindings}) ->
-    case oni_db:is_wizard(Player) of
-        true -> 
-            {Str, NewBindings} = oni:eval_to_str(Data, Bindings),
-            oni:notify(Socket, Str),
-            {noreply, S#state{bindings = NewBindings}};
-        false -> 
-            oni:notify(Socket, ?INVALID_CMD),
-            {noreply, S}
     end;
 handle_info({tcp, Socket, <<"@reset", _/binary>>}, 
              S = #state{next = connected, player = Player}) ->
@@ -103,8 +93,23 @@ handle_info({tcp, Socket, <<"@reset", _/binary>>},
             oni:notify(Socket, ?INVALID_CMD),
             {noreply, S}
     end;
-handle_info({tcp, Socket, Data}, 
-        S = #state{next = connected, player = _Player }) ->
+handle_info({tcp, Socket, <<";", Data/binary>>},
+             S = #state{next = connected, player = Player, 
+                        bindings = Bindings}) ->
+    case oni_db:is_wizard(Player) of
+        true -> 
+            {Str, NewBindings} = oni:eval_to_str(Data, Bindings),
+            oni:notify(Socket, Str),
+            {noreply, S#state{bindings = NewBindings}};
+        false -> 
+            oni:notify(Socket, ?INVALID_CMD),
+            {noreply, S}
+    end;
+handle_info({tcp, Socket, <<"'", Data/binary>>}, S) ->
+    %% Just a prototype `say' here for checking command order.
+    oni:notify(Socket, "You say, \"~s\"", [oni_bstr:trim(Data)]),
+    {noreply, S};
+handle_info({tcp, Socket, Data}, S = #state{next = connected}) ->
     Command = oni_cmd:parse(Data),
     oni:notify(Socket, "~p", [Command]),
     {noreply, S};
