@@ -1,5 +1,19 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
+%%% @doc Implements the callbacks for an accepted socket connection.
+%%%
+%%% This module does some lifting by doing some first chance checks on the
+%%% binary data. For now, the basic behaviour is to parse the command and return
+%%% the pretty (not really) command spec in text form. 
+%%%
+%%% There are some special cases though which are available if you are a wizard.
+%%% You can execute any Erlang expression list by prefixing your command with a
+%%% semicolon (";") and store values in your session bindings by assigning them 
+%%% to a name(e.g. ";NewPlayer = oni_db:create(nothing)."). You can reset your
+%%% bindings with the special command "@reset". 
+%%%
+%%% Every player can execute the "@quit" command. This will gracefully
+%%% disconnect.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above

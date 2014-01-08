@@ -1,5 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
+%%% @doc Implements the callbacks for the accept socket supervisor.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above

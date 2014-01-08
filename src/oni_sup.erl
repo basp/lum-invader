@@ -1,5 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
+%%% @doc This is the main supervisor acting on failure of critical processes.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
