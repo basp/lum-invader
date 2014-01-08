@@ -71,6 +71,8 @@ handle_cast(accept, S = #state{listener = ListenSocket}) ->
     oni:notify(AcceptSocket, oni_ansi:style(?MSG_CONNECT)),
     {noreply, S#state{next = login}}.
     
+handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
+    {stop, normal, S};
 handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
     Command = oni_cmd:parse(Data),
     case oni:do_login(Socket, Command) of
@@ -91,8 +93,6 @@ handle_info({tcp, Socket, <<";", Data/binary>>},
             oni:notify(Socket, ?INVALID_CMD),
             {noreply, S}
     end;
-handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
-    {stop, normal, S};
 handle_info({tcp, Socket, <<"@reset", _/binary>>}, 
              S = #state{next = connected, player = Player}) ->
     case oni_db:is_wizard(Player) of
