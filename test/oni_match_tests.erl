@@ -18,23 +18,35 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+starts_with(X) -> fun(Y) -> oni_bstr:starts_with(X, Y) end.
+
 match_list_test() ->
-    ?assertEqual(
-        nothing, oni_match:list(<<"foo">>, [])),
-    ?assertEqual(
-        nothing, oni_match:list(<<"foo">>, [<<"bar">>])),
-    ?assertEqual(
-        <<"foo">>, oni_match:list(<<"foo">>, [<<"foo">>, <<"bar">>])),
-    ?assertEqual(
-        <<"bar">>, oni_match:list(<<"bar">>, [<<"foo">>, <<"bar">>])),
-    ?assertEqual(
-        <<"foo">>, oni_match:list(<<"fo">>, [<<"bar">>, <<"foo">>])),
-    ?assertEqual(
-        {ambiguous, <<"foobar">>, <<"foo">>}, 
-        oni_match:list(<<"foo">>, [<<"foobar">>, <<"foo">>])),
-    ?assertEqual(
-        {ambiguous, <<"f">>, <<"f">>}, 
-        oni_match:list(<<"f">>, [<<"f">>, <<"f">>])).
+    ?assertEqual(failed, 
+        oni_match:list(starts_with(<<"foo">>), [])),
+    ?assertEqual(failed, 
+        oni_match:list(starts_with(<<"foo">>), [<<"bar">>])),
+    ?assertEqual(<<"foo">>, 
+        oni_match:list(starts_with(<<"foo">>), [<<"foo">>, <<"bar">>])),
+    ?assertEqual(<<"bar">>, 
+        oni_match:list(starts_with(<<"bar">>), [<<"foo">>, <<"bar">>])),
+    ?assertEqual(<<"foo">>, 
+        oni_match:list(starts_with(<<"fo">>), [<<"bar">>, <<"foo">>])),
+    ?assertEqual({ambiguous, [<<"foobar">>, <<"foo">>]}, 
+        oni_match:list(starts_with(<<"foo">>), [<<"foobar">>, <<"foo">>])),
+    ?assertEqual({ambiguous, [<<"f">>, <<"f">>]}, 
+        oni_match:list(starts_with(<<"f">>), [<<"f">>, <<"f">>])).
+
+match_verb(X) -> fun(Y) -> oni_match:verb(X, Y) end.
+
+match_verb_list_test() ->
+    ?assertEqual(<<"foo*bar">>, 
+        oni_match:list(match_verb(<<"foo">>), [<<"bar*foo">>, <<"foo*bar">>])),
+    ?assertEqual(<<"foo*">>,
+        oni_match:list(match_verb(<<"foogleman">>), [<<"foo*bar">>, <<"foo*">>])),
+    ?assertEqual(<<"*">>,
+        oni_match:list(match_verb(<<"frob">>), [<<"foo*bar">>, <<"*">>])),
+    ?assertEqual({ambiguous, [<<"foo*bar">>, <<"foo">>]},
+        oni_match:list(match_verb(<<"foo">>), [<<"foo*bar">>, <<"foo">>])).
 
 match_verb_test() ->
     %% Containing star matches any prefix of itself that is as least 

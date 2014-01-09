@@ -17,37 +17,74 @@
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
 
--export([parse/1]).
+-export([parse/2]).
 
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
     {Verb::binary(), Dobjstr::binary(),
      Prep::binary(), Iobjstr::binary(), Argstr::binary(), Args::[binary()]}.
 
+-record(parsed_cmd, {verb = <<>>, argstr = <<>>, args = [], 
+                     dobjstr = <<>>, dobj = nothing, 
+                     prepstr = <<>>, iobjstr = <<>>, iobj = nothing}).
+
 %%%============================================================================
 %%% API
 %%%============================================================================
+parse(Data, nothing) ->
+    case parse_spec(Data) of
+        {Verb, _Dobjstr, Argstr, Args} ->
+            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args};
+        {Verb, _Dobjstr, _Prepstr, _Iobjstr, Argstr, Args} ->
+            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args}
+    end;
+parse(Data, User) ->
+    case parse_spec(Data) of
+        {Verb, Dobjstr, Argstr, Args} ->
+            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args,
+                        dobjstr = Dobjstr, 
+                        dobj = resolve_objstr(Dobjstr, User)};
+        {Verb, Dobjstr, Prepstr, Iobjstr, Argstr, Args} ->
+            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args,
+                        dobjstr = Dobjstr,
+                        dobj = resolve_objstr(Dobjstr, User),
+                        prepstr = Prepstr, 
+                        iobjstr = Iobjstr,
+                        iobj = resolve_objstr(Iobjstr, User)}
+    end.
 
-%% @doc Parses the binary string into a command specification tuple.
-%%
-%% The result comes in two variations depending on whether a preposition
-%% was found or not. If a preposition was found, the result tuple will
-%% also include the prepstr and iobjstr items as well as all the others.
-%% If no prepstr was found, it will only include the verb, dobjstr, argstr
-%% and args items.
-%% @end
--spec parse(binary()) -> cmdspec().
-parse(Data) ->
+%%%============================================================================
+%%% Internal functions
+%%%============================================================================
+
+-spec resolve_objstr(binary(), oni_db:objid() | [oni_db:objid()]) -> 
+    oni_db:objid().
+resolve_objstr(_Str, []) -> nothing;
+resolve_objstr(Str, [H|T]) ->
+    oni_match:list(match_object(Str), [H|T]);
+resolve_objstr(<<>>, _User) -> nothing;
+resolve_objstr(<<$#, Rest>>, _User) -> binary_to_integer(Rest);
+resolve_objstr(<<"me">>, User) -> User;
+resolve_objstr(<<"here">>, User) -> oni_db:location(User);
+resolve_objstr(Str, User) ->
+    resolve_objstr(Str, oni_db:contents(User)).
+
+match_object(Str) -> 
+    fun(Id) -> 
+        case oni_db:name(Id) of
+            nothing -> false;
+            Name -> oni_bstr:starts_with(Str, Name)
+        end
+    end.
+
+-spec parse_spec(binary()) -> cmdspec().
+parse_spec(Data) ->
     %% The first token is assumed to be the verb.
     token(Data, fun(Rest, Verb) -> 
         whitespace(Rest, fun(Rest2) ->
             command(Rest2, {Verb})
         end)
     end).
-
-%%%============================================================================
-%%% Internal functions
-%%%============================================================================
 
 -spec command(binary(), {binary()}) -> cmdspec().
 command(Data, {Verb}) ->

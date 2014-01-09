@@ -19,21 +19,35 @@
 
 -export([list/2, verb/2]).
 
--type match() :: 
-    any() | nothing | {ambiguous, First::binary(), Second::binary()}.
+-export_type([match/0]).
+
+-type match() :: any() | failed | {ambiguous, [binary()]}.
 
 %%%============================================================================
 %%% API
 %%%============================================================================
 
 %% @doc Tries to match the prefix on a list of binary strings.
--spec list(Prefix::binary(), List::binary()) -> match().
-list(Prefix, List) ->
-    list(Prefix, List, nothing).
+-spec list(Pred::fun((binary()) -> boolean()), List::[binary()]) -> match().
+list(Pred, List) ->
+    list(Pred, List, failed).
 
 -spec verb(Str::binary(), Verb::binary()) -> boolean().
 verb(Str, Verb) ->
     verb(Str, Verb, false).
+
+%%%============================================================================
+%%% Internal functions
+%%%============================================================================
+
+list(<<>>, _List, _Found) -> failed;
+list(_Pred, [], Found) -> Found;
+list(Pred, [H|T], Found) ->
+    case Pred(H) of
+        true when Found =/= failed -> {ambiguous, [Found, H]};
+        true -> list(Pred, T, H);
+        false -> list(Pred, T, Found)
+    end.
 
 verb(<<>>, <<>>, _) -> true;
 verb(<<X, Str/binary>>, <<X, Verb/binary>>, StarFound) ->
@@ -45,16 +59,3 @@ verb(Str, <<"*", Verb/binary>>, _) ->
 verb(<<>>, _, true) -> true;
 verb(_, <<>>, _) -> false;
 verb(_, _, _) -> false.
-
-%%%============================================================================
-%%% Internal functions
-%%%============================================================================
-
-list(<<>>, _List, _Found) -> nothing;
-list(_Prefix, [], Found) -> Found;
-list(Prefix, [H|T], Found) ->
-    case oni_bstr:starts_with(Prefix, H) of
-        true when Found =/= nothing -> {ambiguous, Found, H};
-        true -> list(Prefix, T, H);
-        false -> list(Prefix, T, Found)
-    end.

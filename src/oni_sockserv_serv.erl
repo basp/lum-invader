@@ -75,7 +75,7 @@ handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
     %% Handle @quit early so we don't depend on too much matching state.
     {stop, normal, S};
 handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
-    Command = oni_cmd:parse(Data),
+    Command = oni_cmd:parse(Data, nothing),
     case oni:do_login(Socket, Command) of
         nothing -> {noreply, S};
         Player -> 
@@ -109,8 +109,9 @@ handle_info({tcp, Socket, <<"'", Data/binary>>}, S) ->
     %% Just a prototype `say' here for checking command order.
     oni:notify(Socket, "You say, \"~s\"", [oni_bstr:trim(Data)]),
     {noreply, S};
-handle_info({tcp, Socket, Data}, S = #state{next = connected}) ->
-    Command = oni_cmd:parse(Data),
+handle_info({tcp, Socket, Data}, 
+             S = #state{next = connected, player = Player}) ->
+    Command = oni_cmd:parse(Data, Player),
     oni:notify(Socket, "~p", [Command]),
     {noreply, S};
 handle_info({tcp_closed, Socket}, 
