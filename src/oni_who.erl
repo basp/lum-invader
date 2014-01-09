@@ -17,8 +17,6 @@
 %%%----------------------------------------------------------------------------
 -module(oni_who).
 
--include_lib("stdlib/include/qlc.hrl").
-
 -export([init/0, insert_connection/2, delete_connection/1, get_connection/1,
          get_player/1, list/0]).
 
@@ -35,7 +33,8 @@
 %% This table is used to connect object ids and sockets.
 -spec init() -> true.
 init() ->
-    ets:new(?TABLE_CONNECTIONS, [set, {keypos, #conn.id}, named_table, public]).
+    Args = [set, {keypos, #conn.id}, named_table, public],
+    ets:new(?TABLE_CONNECTIONS, Args).
 
 %% @doc Inserts a connection into the table.
 %%
@@ -47,7 +46,8 @@ insert_connection(Id, Socket) ->
 
 %% @doc Deletes the connection associated with given object id.
 %%
-%% This will hapilly return with true if there are no connections for given id.
+%% This will hapilly return with true if there are no connections for 
+%% given id.
 -spec delete_connection(Id::oni_db:objid()) -> true.
 delete_connection(Id) ->
     ets:delete(?TABLE_CONNECTIONS, Id).
@@ -72,6 +72,5 @@ get_player(Socket) ->
 %% @doc Returns a list of all active connection associations.
 -spec list() -> [{Id::oni_db:objid(), Socket::gen_tcp:socket()}].
 list() ->
-    Q = qlc:q([{Id, Socket} || 
-               {conn, Id, Socket} <- ets:table(?TABLE_CONNECTIONS)]),
-    qlc:e(Q).
+    M = [{#conn{id = '$1', socket = '$2'}, [], [{{'$1', '$2'}}]}],
+    ets:select(?TABLE_CONNECTIONS, M).
