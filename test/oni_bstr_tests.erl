@@ -19,35 +19,29 @@
 -include_lib("eunit/include/eunit.hrl").
 
 trim_start_test() ->
-	?assertEqual(<<"foo">>, oni_bstr:trim_start(<<"    foo">>)),
-	?assertEqual(<<"foo">>, oni_bstr:trim_start(<<"foo">>)),
+	?assertEqual(<<"foo">>, 	oni_bstr:trim_start(<<"    foo">>)),
+	?assertEqual(<<"foo">>, 	oni_bstr:trim_start(<<"foo">>)),
 	?assertEqual(<<"foo bar">>, oni_bstr:trim_start(<<"   foo bar">>)),
-	?assertEqual(<<"foo   ">>, oni_bstr:trim_start(<<"foo   ">>)).
+	?assertEqual(<<"foo   ">>, 	oni_bstr:trim_start(<<"foo   ">>)).
 
 trim_end_test() ->
-	?assertEqual(<<"foo">>, oni_bstr:trim_end(<<"foo    ">>)),
-	?assertEqual(<<"foo">>, oni_bstr:trim_end(<<"foo">>)),
+	?assertEqual(<<"foo">>, 	oni_bstr:trim_end(<<"foo    ">>)),
+	?assertEqual(<<"foo">>, 	oni_bstr:trim_end(<<"foo">>)),
 	?assertEqual(<<"foo bar">>, oni_bstr:trim_end(<<"foo bar   ">>)),
-	?assertEqual(<<"   foo">>, oni_bstr:trim_end(<<"   foo">>)).
-
-join_test() ->
-	?assertEqual(
-		<<"foo">>, 
-		oni_bstr:join([<<"foo">>])),
-	?assertEqual(
-		<<"\"foo bar\"">>, 
-		oni_bstr:join([<<"\"foo bar\"">>])),
-	?assertEqual(
-		<<"foo and bar">>, 
-		oni_bstr:join([<<"foo">>, <<"bar">>], <<", ">>, <<" and ">>)),
-	?assertEqual(
-		<<"foo, bar and quux">>, 
-		oni_bstr:join(
-			[<<"foo">>, <<"bar">>, <<"quux">>], 
-			<<", ">>, <<" and ">>)).
+	?assertEqual(<<"   foo">>, 	oni_bstr:trim_end(<<"   foo">>)).
 
 starts_with_test() ->
-	?assertEqual(true, oni_bstr:starts_with(<<>>, <<"quux">>)),
-	?assertEqual(true, oni_bstr:starts_with(<<"foo">>, <<"foobar">>)),
-	?assertEqual(true, oni_bstr:starts_with(<<"fo">>, <<"fo quux">>)),
-	?assertEqual(false, oni_bstr:starts_with(<<"fo">>, <<"quux">>)).
+	?assertEqual(true, 		oni_bstr:starts_with(<<>>, <<"quux">>)),
+	?assertEqual(true, 		oni_bstr:starts_with(<<"foo">>, <<"foobar">>)),
+	?assertEqual(true, 		oni_bstr:starts_with(<<"fo">>, <<"fo quux">>)),
+	?assertEqual(false, 	oni_bstr:starts_with(<<"fo">>, <<"quux">>)).
+
+join_test() ->
+	?assertEqual(<<"foo">>, 				
+		oni_bstr:join([<<"foo">>])),
+	?assertEqual(<<"\"foo bar\"">>, 		
+		oni_bstr:join([<<"\"foo bar\"">>])),
+	?assertEqual(<<"foo and bar">>, 		
+		oni_bstr:join([<<"foo">>, <<"bar">>], <<", ">>, <<" and ">>)),
+	?assertEqual(<<"foo, bar and quux">>, 	
+		oni_bstr:join([<<"foo">>, <<"bar">>, <<"quux">>], <<", ">>, <<" and ">>)).

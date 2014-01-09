@@ -17,10 +17,14 @@
 %%%----------------------------------------------------------------------------
 -module(oni).
 
--export([do_login/3, start/0, stop/0, notify/2, notify/3, 
+-export([test/0, do_login/3, start/0, stop/0, notify/2, notify/3, 
          eval/2, eval_to_str/2]).
 
 -define(INVALID_LOGIN, <<"Invalid player or password">>).
+
+%% @doc Development utilitities
+test() ->
+    eunit:test([oni_ansi, oni_bstr, oni_cmd, oni_match]).
 
 %% @doc Default login handler
 do_login(Socket, <<"connect">>, [Name|_]) ->
