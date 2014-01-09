@@ -39,20 +39,36 @@
 
 %% First, some simple access functions. 
 
+%% @doc Extracts the verb element from a parsed command.
+-spec verb(#parsed_cmd{})                   -> binary().
 verb(#parsed_cmd{verb = Verb})              -> Verb.
 
+%% @doc Extracts the argstr element from a parsed command.
+-spec argstr(#parsed_cmd{})                 -> binary().
 argstr(#parsed_cmd{argstr = Argstr})        -> Argstr.
 
+%% @doc Extracts the args element from a parsed command.
+-spec args(#parsed_cmd{})                   -> [binary()].
 args(#parsed_cmd{args = Args})              -> Args.
 
+%% @doc Extracts the dobjstr element from a parsed command.
+-spec dobjstr(#parsed_cmd{})                -> binary().
 dobjstr(#parsed_cmd{dobjstr = Dobjstr})     -> Dobjstr.
 
+%% @doc Extracts the dobj element from a parsed command.
+-spec dobj(#parsed_cmd{})                   -> oni_db:objid().
 dobj(#parsed_cmd{dobj = Dobj})              -> Dobj.
 
+%% @doc Extracts the prepstr element from a parsed command.
+-spec prepstr(#parsed_cmd{})                -> binary().
 prepstr(#parsed_cmd{prepstr = Preopstr})    -> Preopstr.
 
+%% @doc Extracts the iobjstr element from a parsed command.
+-spec iobjstr(#parsed_cmd{})                -> binary().
 iobjstr(#parsed_cmd{iobjstr = Iobjstr})     -> Iobjstr.
 
+%% @doc Extracts the iobj element from a parsed command.
+-spec iobj(#parsed_cmd{})                   -> oni_db:objid().
 iobj(#parsed_cmd{iobj = Iobj})              -> Iobj.
 
 %% @doc Parses a user command.

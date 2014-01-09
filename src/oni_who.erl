@@ -31,6 +31,7 @@
 %% @doc Initializes the connections table.
 %%
 %% This table is used to connect object ids and sockets.
+%% @end
 -spec init() -> true.
 init() ->
     Args = [set, {keypos, #conn.id}, named_table, public],
@@ -40,6 +41,7 @@ init() ->
 %%
 %% Any existing connection with the same object id will be blissfully 
 %% overwritten.
+%% @end
 -spec insert_connection(Id::oni_db:objid(), Socket::gen_tcp:socket()) -> true.
 insert_connection(Id, Socket) ->
     ets:insert(?TABLE_CONNECTIONS, #conn{id = Id, socket = Socket}).
@@ -48,6 +50,7 @@ insert_connection(Id, Socket) ->
 %%
 %% This will hapilly return with true if there are no connections for 
 %% given id.
+%% @end
 -spec delete_connection(Id::oni_db:objid()) -> true.
 delete_connection(Id) ->
     ets:delete(?TABLE_CONNECTIONS, Id).

@@ -42,6 +42,7 @@ list(Pred, List) ->
 list_i(Pred, List, Index) when Index > 0 -> 
     list_i(Pred, List, [], Index).
 
+%% @doc Matches verb names including the wildcard asterisk.
 -spec verb(Str::binary(), Verb::binary()) -> boolean().
 verb(Str, Verb) ->
     verb(Str, Verb, false).
