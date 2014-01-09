@@ -17,17 +17,19 @@
 %%%----------------------------------------------------------------------------
 -module(oni).
 
--export([do_login/2, start/0, stop/0, notify/2, notify/3, 
+-export([do_login/3, start/0, stop/0, notify/2, notify/3, 
          eval/2, eval_to_str/2]).
 
+-define(INVALID_LOGIN, <<"Invalid player or password">>).
+
 %% @doc Default login handler
-do_login(Socket, {<<"connect">>, _Dobjstr, Argstr, _Args}) ->
-    case find_players(Argstr) of
-        [] -> notify(Socket, "Invalid player or password."), nothing;
-        [Id] -> notify(Socket, "*** connected (~s) ***", [Argstr]), Id
+do_login(Socket, <<"connect">>, [Name|_]) ->
+    case find_players(Name) of
+        [] -> notify(Socket, ?INVALID_LOGIN), nothing;
+        [Id] -> notify(Socket, "*** connected (~s) ***", [Name]), Id
     end;
-do_login(Socket, Command) ->
-    notify(Socket, "~p", [Command]),
+do_login(Socket, _Command, _Args) ->
+    notify(Socket, ?INVALID_LOGIN),
     nothing.
 
 %% @doc Starts the application.

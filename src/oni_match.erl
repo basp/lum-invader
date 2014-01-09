@@ -17,7 +17,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni_match).
 
--export([list/2, verb/2]).
+-export([list/2, list_i/3, verb/2]).
 
 -export_type([match/0]).
 
@@ -27,10 +27,20 @@
 %%% API
 %%%============================================================================
 
-%% @doc Tries to match the prefix on a list of binary strings.
+%% @doc Matches the predicate on a list of binary strings.
+%% 
+%% This might return {ambiguous, [found]} when there is more than one match.
 -spec list(Pred::fun((binary()) -> boolean()), List::[binary()]) -> match().
 list(Pred, List) ->
     list(Pred, List, failed).
+
+%% @doc Like list but returns the nth match or nothing instead.
+%%
+%% In contrast with list, this will never return ambiguous.
+-spec list_i(Pred::fun((binary()) -> boolean()), 
+             List::[binary()], Index::integer()) -> nothing | binary().
+list_i(Pred, List, Index) -> 
+    list_i(Pred, List, [], Index).
 
 -spec verb(Str::binary(), Verb::binary()) -> boolean().
 verb(Str, Verb) ->
@@ -40,13 +50,22 @@ verb(Str, Verb) ->
 %%% Internal functions
 %%%============================================================================
 
-list(<<>>, _List, _Found) -> failed;
 list(_Pred, [], Found) -> Found;
 list(Pred, [H|T], Found) ->
     case Pred(H) of
         true when Found =/= failed -> {ambiguous, [Found, H]};
         true -> list(Pred, T, H);
         false -> list(Pred, T, Found)
+    end.
+
+list_i(_Pred, [], Acc, Index) when length(Acc) < Index, Index > 0 -> 
+    nothing;
+list_i(_Pred, [], Acc, Index) when Index > 0 ->
+    lists:nth(Index, lists:reverse(Acc));
+list_i(Pred, [H|T], Acc, Index) when Index > 0 ->
+    case Pred(H) of
+        true -> list_i(Pred, T, [H|Acc], Index);
+        false -> list_i(Pred, T, Acc, Index)
     end.
 
 verb(<<>>, <<>>, _) -> true;

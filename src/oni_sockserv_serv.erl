@@ -75,8 +75,8 @@ handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
     %% Handle @quit early so we don't depend on too much matching state.
     {stop, normal, S};
 handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
-    Command = oni_cmd:parse(Data, nothing),
-    case oni:do_login(Socket, Command) of
+    Cmd = oni_cmd:parse(Data, nothing),
+    case oni:do_login(Socket, oni_cmd:verb(Cmd), oni_cmd:args(Cmd)) of
         nothing -> {noreply, S};
         Player -> 
             oni_who:insert_connection(Player, Socket),

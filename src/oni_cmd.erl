@@ -17,7 +17,12 @@
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
 
--export([parse/2]).
+-export([parse/2, 
+         verb/1, 
+         argstr/1, args/1, 
+         dobjstr/1, dobj/1, 
+         prepstr/1, 
+         iobjstr/1, iobj/1]).
 
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
@@ -31,6 +36,25 @@
 %%%============================================================================
 %%% API
 %%%============================================================================
+
+verb(#parsed_cmd{verb = Verb}) -> Verb.
+
+argstr(#parsed_cmd{argstr = Argstr}) -> Argstr.
+
+args(#parsed_cmd{args = Args}) -> Args.
+
+dobjstr(#parsed_cmd{dobjstr = Dobjstr}) -> Dobjstr.
+
+dobj(#parsed_cmd{dobj = Dobj}) -> Dobj.
+
+prepstr(#parsed_cmd{prepstr = Preopstr}) -> Preopstr.
+
+iobjstr(#parsed_cmd{iobjstr = Iobjstr}) -> Iobjstr.
+
+iobj(#parsed_cmd{iobj = Iobj}) -> Iobj.
+
+%% @doc Parses a user command.
+-spec parse(Data::binary(), User::oni_db:objid()) -> #parsed_cmd{}.
 parse(Data, nothing) ->
     case parse_spec(Data) of
         {Verb, _Dobjstr, Argstr, Args} ->
@@ -50,7 +74,9 @@ parse(Data, User) ->
                         dobj = resolve_objstr(Dobjstr, User),
                         prepstr = Prepstr, 
                         iobjstr = Iobjstr,
-                        iobj = resolve_objstr(Iobjstr, User)}
+                        iobj = resolve_objstr(Iobjstr, User)};
+        Other ->
+            io:format("parse got: ~p~n", [Other])
     end.
 
 %%%============================================================================
@@ -59,13 +85,36 @@ parse(Data, User) ->
 
 -spec resolve_objstr(binary(), oni_db:objid() | [oni_db:objid()]) -> 
     oni_db:objid().
-resolve_objstr(_Str, []) -> nothing;
-resolve_objstr(Str, [H|T]) ->
-    oni_match:list(match_object(Str), [H|T]);
-resolve_objstr(<<>>, _User) -> nothing;
-resolve_objstr(<<$#, Rest>>, _User) -> binary_to_integer(Rest);
-resolve_objstr(<<"me">>, User) -> User;
-resolve_objstr(<<"here">>, User) -> oni_db:location(User);
+resolve_objstr(_Str, []) -> 
+    nothing;
+resolve_objstr(Str, List) when is_list(List) ->
+    case Str of
+        %% Optimized cases for index 1-9
+        <<"1." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 1);
+        <<"2." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 2);
+        <<"3." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 3);
+        <<"4." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 4);
+        <<"5." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 5);
+        <<"6." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 6);
+        <<"7." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 7);
+        <<"8." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 8);
+        <<"9." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 9);
+        <<C, C, $., Rest>>  ->
+            %% Improve safety of this one, binary_to_integer might fail easily
+            Index = binary_to_integer(<<C, C>>),
+            oni_match:list_i(match_object(Rest), List, Index);
+        Str ->
+            oni_match:list(match_object(Str), List)
+    end;
+resolve_objstr(<<>>, _User) -> 
+    nothing;
+%% Improve safety of this one, binary_to_integer might fail easily
+resolve_objstr(<<$#, Rest>>, _User) -> 
+    binary_to_integer(Rest);
+resolve_objstr(<<"me">>, User) -> 
+    User;
+resolve_objstr(<<"here">>, User) -> 
+    oni_db:location(User);
 resolve_objstr(Str, User) ->
     resolve_objstr(Str, oni_db:contents(User)).
 
@@ -91,7 +140,7 @@ command(Data, {Verb}) ->
     %% Parse the dobj and also pass along everything else (trimmed) 
     %% as our argstr.
     words_until_preposition(Data, fun(Rest, Dobj) -> 
-        command(Rest, {Verb, Dobj, oni_bstr:trim(Data)})
+        command(Rest, {Verb, Dobj, Data})
     end);
 command(Data, {Verb, Dobj, Argstr}) ->
     %% Look for a preposition and continue, if we can't
@@ -100,7 +149,7 @@ command(Data, {Verb, Dobj, Argstr}) ->
         false -> 
             Dobjstr = oni_bstr:join(Dobj),
             Args = Dobj,
-            {Verb, Dobjstr, Argstr, Args};
+            {Verb, Dobjstr, oni_bstr:trim(Argstr), Args};
         {Prep, Rest} ->
             whitespace(Rest, fun(Rest2) -> 
                     command(Rest2, {Verb, Dobj, Prep, Argstr}) 
@@ -112,7 +161,7 @@ command(Data, {Verb, Dobj, Prep, Argstr}) ->
         Dobjstr = oni_bstr:join(Dobj),
         Iobjstr = oni_bstr:join(Iobj),
         Args = lists:concat([Dobj, [Prep], Iobj]),
-        {Verb, Dobjstr, Prep, Iobjstr, Argstr, Args}
+        {Verb, Dobjstr, Prep, Iobjstr, oni_bstr:trim(Argstr), Args}
     end).
 
 -spec words(binary(), fun()) -> any().
@@ -185,18 +234,23 @@ quoted_string(<<$", Rest/binary>>, Fun) ->
     quoted_string(Rest, Fun, <<>>).
 
 -spec quoted_string(binary(), fun(), binary()) -> any().
-quoted_string(<<>>, _Fun, _Acc) ->
-    {error, badarg};
+quoted_string(<<$", Rest/binary>>, Fun, <<>>) ->
+    quoted_string(Rest, Fun, <<>>);
 quoted_string(<<$", $\s, Rest/binary>>, Fun, Acc) ->
     Fun(Rest, Acc);
 quoted_string(<<$", $\t, Rest/binary>>, Fun, Acc) ->
     Fun(Rest, Acc);
-quoted_string(<<$", Rest/binary>>, Fun, Acc) ->
-    quoted_string(Rest, Fun, Acc);
-quoted_string(<<$\\, C, Rest/binary>>, Fun, Acc) ->
-    quoted_string(Rest, Fun, <<Acc/binary, C>>);
+quoted_string(<<$", $\r, Rest/binary>>, Fun, Acc) ->
+    Fun(Rest, Acc);
+quoted_string(<<$", $\n, Rest/binary>>, Fun, Acc) ->
+    Fun(Rest, Acc);
+quoted_string(<<>>, Fun, Acc) ->
+    Fun(<<>>, Acc);
 quoted_string(<<C, Rest/binary>>, Fun, Acc) ->
     quoted_string(Rest, Fun, <<Acc/binary, C>>).
+
+%%quoted_string(<<$\\, C, Rest/binary>>, Fun, Acc) ->
+%%    quoted_string(Rest, Fun, <<Acc/binary, C>>);
 
 %% We need to be able to distinguish between "normal" words and
 %% prepositions in order to split the command into dobj and iobj parts.
