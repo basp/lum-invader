@@ -93,8 +93,6 @@ parse(Data, User) ->
                         prepstr = Prepstr, 
                         iobjstr = Iobjstr,
                         iobj = resolve_objstr(Iobjstr, User)};
-        Other ->
-            io:format("parse got: ~p~n", [Other])
     end.
 
 %%%============================================================================
@@ -103,8 +101,11 @@ parse(Data, User) ->
 
 -spec resolve_objstr(binary(), oni_db:objid() | [oni_db:objid()]) -> 
     oni_db:objid().
+%% We're resolving on an empty list, nothing to find.
 resolve_objstr(_Str, []) -> 
     nothing;
+%% Check if we are indexing on a direct object or indirect object.
+%% If we are, we are going to use list_i instead of list.
 resolve_objstr(Str, List) when is_list(List) ->
     case Str of
         %% Optimized cases for index 1-9
@@ -127,15 +128,26 @@ resolve_objstr(Str, List) when is_list(List) ->
         Str ->
             oni_match:list(match_object(Str), List)
     end;
+%% We are resolving an empty string, never gonna find a result.
 resolve_objstr(<<>>, _User) -> 
     nothing;
+%% We are resolving an object id like '#123'.
+%% At this point we are going to assume the user is sane and is not passing
+%% us something like '#foo' which cannot be parsed safely into an 'integer()'.
 resolve_objstr(<<$#, Rest>>, _User) -> 
     %% TODO: This needs to be more safe.
     binary_to_integer(Rest);
+%% This is easy, we are referring to the user so we can just return that.
 resolve_objstr(<<"me">>, User) -> 
     User;
+%% This is also easy, we need to get the user's current location. 
+%% We can easily obtain that and return it.
 resolve_objstr(<<"here">>, User) -> 
     oni_db:location(User);
+%% We are trying to get to something else so we need to do some more
+%% involved matching.
+%%
+%% @TODO This is not complete, we need to match more completely.
 resolve_objstr(Str, User) ->
     resolve_objstr(Str, oni_db:contents(User)).
 
