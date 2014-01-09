@@ -21,21 +21,28 @@
 
 -include_lib("stdlib/include/qlc.hrl").
 
--export([init/0, create_wiz/2, create/1, valid/1, name/1, rename/2, 
-		 chparent/2, parent/1, children/1, recycle/1, max_object/0, move/2, 
-         location/1, contents/1, players/0, is_player/1,
-         set_player_flag/2, is_wizard/1, set_wizard_flag/2, 
-         is_programmer/1, set_programmer_flag/2, is_readable/1,
-         set_read_flag/2, is_writable/1, set_write_flag/2, 
-         is_fertile/1, set_fertile_flag/2, properties/1,
-         add_property/3, delete_property/2, get_value/2, set_value/3]).
+-export([init/0, create_wiz/2, 
+		 create/1, valid/1, recycle/1, max_object/0, 
+		 name/1, rename/2, 
+		 aliases/1, set_aliases/2,
+		 chparent/2, parent/1, children/1, 	 
+		 move/2, location/1, contents/1, 
+		 players/0, is_player/1, set_player_flag/2, 
+		 is_wizard/1, set_wizard_flag/2, 
+         is_programmer/1, set_programmer_flag/2, 
+         is_readable/1, set_read_flag/2, 
+         is_writable/1, set_write_flag/2, 
+         is_fertile/1, set_fertile_flag/2, 
+         properties/1, add_property/3, delete_property/2, 
+         get_value/2, set_value/3]).
 
 -record(object, {id, 
                  parent = nothing, 
                  name = <<"">>,
+                 aliases = [],
                  location = nothing, 
-                 props = [], 
                  verbs = [], 
+                 props = [], 
                  flags = 2#000000}).
 
 %% Table identifiers
@@ -120,6 +127,21 @@ rename(Id, Name) ->
 		[] -> 'E_INVARG';
 		[Obj] ->
 			ets:insert(?TABLE_OBJECTS, Obj#object{name = Name})
+	end.
+
+%% @doc Returns the aliases of given object.
+aliases(Id) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> Obj#object.aliases
+	end.
+
+%% @doc Sets the aliases of given object to given list.
+set_aliases(Id, Value) when is_list(Value) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			ets:insert(?TABLE_OBJECTS, Obj#object{aliases = Value})
 	end.
 
 %% @doc Changes the parent of the object with specified id.
@@ -330,6 +352,7 @@ get_value(Id, location) -> location(Id);
 get_value(Id, contents) -> contents(Id);
 get_value(Id, children) -> children(Id);
 get_value(Id, name) -> name(Id);
+get_value(Id, aliases) -> aliases(Id);
 get_value(Id, wizard) -> is_wizard(Id);
 get_value(Id, programmer) -> is_programmer(Id);
 get_value(Id, r) -> is_readable(Id);
@@ -359,6 +382,7 @@ set_value(_Id, location, _Value) -> 'E_INVARG';
 set_value(_Id, contents, _Value) -> 'E_INVARG';
 set_value(_Id, children, _Value) -> 'E_INVARG';
 set_value(Id, name, Value) -> rename(Id, Value);
+set_value(Id, aliases, Value) -> set_aliases(Id, Value);
 set_value(Id, wizard, Value) -> set_wizard_flag(Id, Value);
 set_value(Id, programmer, Value) -> set_programmer_flag(Id, Value);
 set_value(Id, r, Value) -> set_read_flag(Id, Value);
