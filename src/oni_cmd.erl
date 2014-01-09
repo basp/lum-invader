@@ -37,21 +37,23 @@
 %%% API
 %%%============================================================================
 
-verb(#parsed_cmd{verb = Verb}) -> Verb.
+%% First, some simple access functions. 
 
-argstr(#parsed_cmd{argstr = Argstr}) -> Argstr.
+verb(#parsed_cmd{verb = Verb})              -> Verb.
 
-args(#parsed_cmd{args = Args}) -> Args.
+argstr(#parsed_cmd{argstr = Argstr})        -> Argstr.
 
-dobjstr(#parsed_cmd{dobjstr = Dobjstr}) -> Dobjstr.
+args(#parsed_cmd{args = Args})              -> Args.
 
-dobj(#parsed_cmd{dobj = Dobj}) -> Dobj.
+dobjstr(#parsed_cmd{dobjstr = Dobjstr})     -> Dobjstr.
 
-prepstr(#parsed_cmd{prepstr = Preopstr}) -> Preopstr.
+dobj(#parsed_cmd{dobj = Dobj})              -> Dobj.
 
-iobjstr(#parsed_cmd{iobjstr = Iobjstr}) -> Iobjstr.
+prepstr(#parsed_cmd{prepstr = Preopstr})    -> Preopstr.
 
-iobj(#parsed_cmd{iobj = Iobj}) -> Iobj.
+iobjstr(#parsed_cmd{iobjstr = Iobjstr})     -> Iobjstr.
+
+iobj(#parsed_cmd{iobj = Iobj})              -> Iobj.
 
 %% @doc Parses a user command.
 -spec parse(Data::binary(), User::oni_db:objid()) -> #parsed_cmd{}.
