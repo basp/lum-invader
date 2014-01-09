@@ -29,7 +29,7 @@
 
 %% @doc Matches the predicate on a list of binary strings.
 %% 
-%% This might return {ambiguous, [found]} when there is more than one match.
+%% This might return {ambiguous, [binary()]} when there is more than one match.
 -spec list(Pred::fun((binary()) -> boolean()), List::[binary()]) -> match().
 list(Pred, List) ->
     list(Pred, List, failed).
@@ -39,7 +39,7 @@ list(Pred, List) ->
 %% In contrast with list, this will never return ambiguous.
 -spec list_i(Pred::fun((binary()) -> boolean()), 
              List::[binary()], Index::integer()) -> nothing | binary().
-list_i(Pred, List, Index) -> 
+list_i(Pred, List, Index) when Index > 0 -> 
     list_i(Pred, List, [], Index).
 
 -spec verb(Str::binary(), Verb::binary()) -> boolean().
