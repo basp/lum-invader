@@ -71,10 +71,10 @@ resolve_objstr(Str, User) ->
 
 match_object(Str) -> 
     fun(Id) -> 
-        case oni_db:name(Id) of
-            nothing -> false;
-            Name -> oni_bstr:starts_with(Str, Name)
-        end
+        Names = lists:filter(
+            fun(X) -> is_binary(X) end,
+            [oni_db:name(Id) | oni_db:aliases(Id)]),
+        lists:any(fun(X) -> oni_bstr:starts_with(Str, X) end, Names)
     end.
 
 -spec parse_spec(binary()) -> cmdspec().
