@@ -101,8 +101,11 @@ resolve_objstr(Str, List) when is_list(List) ->
         <<"7." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 7);
         <<"8." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 8);
         <<"9." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 9);
+        %% We can add more optimized cases here if needed
+        %% <<"10.", Rest>>     -> ...
+        %%
         <<C, C, $., Rest>>  ->
-            %% Improve safety of this one, binary_to_integer might fail easily
+            %% TODO: This needs to be more safe.
             Index = binary_to_integer(<<C, C>>),
             oni_match:list_i(match_object(Rest), List, Index);
         Str ->
@@ -110,8 +113,8 @@ resolve_objstr(Str, List) when is_list(List) ->
     end;
 resolve_objstr(<<>>, _User) -> 
     nothing;
-%% Improve safety of this one, binary_to_integer might fail easily
 resolve_objstr(<<$#, Rest>>, _User) -> 
+    %% TODO: This needs to be more safe.
     binary_to_integer(Rest);
 resolve_objstr(<<"me">>, User) -> 
     User;
@@ -120,6 +123,7 @@ resolve_objstr(<<"here">>, User) ->
 resolve_objstr(Str, User) ->
     resolve_objstr(Str, oni_db:contents(User)).
 
+%% Utility to match on an object name and/or it's aliases.
 match_object(Str) -> 
     fun(Id) -> 
         Names = lists:filter(
@@ -128,6 +132,7 @@ match_object(Str) ->
         lists:any(fun(X) -> oni_bstr:starts_with(Str, X) end, Names)
     end.
 
+%% This parses to a raw command spec tuple that is used internally.
 -spec parse_spec(binary()) -> cmdspec().
 parse_spec(Data) ->
     %% The first token is assumed to be the verb.
@@ -137,16 +142,25 @@ parse_spec(Data) ->
         end)
     end).
 
+%% This will perform the bulk of the command parsing, the state is 
+%% determined by the composition of the state tuple that is passed around.
 -spec command(binary(), {binary()}) -> cmdspec().
+%% Step 1: 
+%% Before entering this step we assume that the verb has been parsed and
+%% that any whitespace is stripped. We are now about the parse the next token.
+%% The next token should always be a direct object (or nothing). Note that
+%% the data we get in this function clause is returned as the final argstr
+%% value to the caller.
 command(Data, {Verb}) ->
-    %% Parse the dobj and also pass along everything else (trimmed) 
-    %% as our argstr.
     words_until_preposition(Data, fun(Rest, Dobj) -> 
-        command(Rest, {Verb, Dobj, Data})
+        command(Rest, _State = {Verb, Dobj, Data})
     end);
+%% Step 2 (sometimes final):
+%% Look for a preposition and continue, if we can't find a preposition at this 
+%% point then we are done. In that case, we just consider everything past the 
+%% verb as part of the direct object and return early. If we find a 
+%% preposition, we continue and try to parse the indirect object in step 3.
 command(Data, {Verb, Dobj, Argstr}) ->
-    %% Look for a preposition and continue, if we can't
-    %% find a preposition at this point then we are done.
     case preposition(Data) of
         false -> 
             Dobjstr = oni_bstr:join(Dobj),
@@ -157,8 +171,11 @@ command(Data, {Verb, Dobj, Argstr}) ->
                     command(Rest2, {Verb, Dobj, Prep, Argstr}) 
             end)
     end;
+%% Step 3 (optional and always final):
+%% Found a preposition, finish with the indirect object (if there is one).
+%% Everything we find from now will be part of the indirect object until we
+%% run out of data to parse.
 command(Data, {Verb, Dobj, Prep, Argstr}) -> 
-    %% Found a preposition, finish with the iobj part.
     words(Data, fun(_Rest, Iobj) ->
         Dobjstr = oni_bstr:join(Dobj),
         Iobjstr = oni_bstr:join(Iobj),
