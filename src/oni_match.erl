@@ -69,13 +69,42 @@ list_i(Pred, [H|T], Acc, Index) when Index > 0 ->
         false -> list_i(Pred, T, Acc, Index)
     end.
 
+%% Verb function below
+%%
+%% We arbitrarely decide that two empty binaries match.
 verb(<<>>, <<>>, _) -> true;
+
+%% The X byte is the same on both left and right so we are still equal.
 verb(<<X, Str/binary>>, <<X, Verb/binary>>, StarFound) ->
     verb(Str, Verb, StarFound);
+
+%% We ran out of left side bytes but found a wildcard and some other stuff.
+%% At this point our left part matched completely so we can return true.
 verb(<<>>, <<"*", _/binary>>, _) -> true;
+
+%% We ran into the end of our match expression and it ended with a wildcard.
+%% Whatever there is on the left side we can ignore - we have matched.
 verb(_, <<"*">>, _) -> true;
+
+%% We ar running into a wildcard but there is more to parse. We also have
+%% more to parse on the left side so we'll try and see if we can continue.
+%%
+%% At this point the thing specified by the user is more precise (longer) than 
+%% is required by the thing that has the wildcard. Because the user supplied 
+%% expression is longer we are going to continue and match more precisely.
 verb(Str, <<"*", Verb/binary>>, _) ->
     verb(Str, Verb, true);
+
+%% We ran out on the left side, but found an asterisk earlier. If we arrived 
+%% this far, that means our left part completed matched everything on the right
+%% side.
 verb(<<>>, _, true) -> true;
+
+%% At this point we ran out of characters to match with on the right but there 
+%% are more characters on the left. The left is more specific so it doesn't
+%% really match.
 verb(_, <<>>, _) -> false;
+
+%% If we arrive here we are totally lost. We might wanna ad some debugging to
+%% this code point later because getting here is not good.
 verb(_, _, _) -> false.
