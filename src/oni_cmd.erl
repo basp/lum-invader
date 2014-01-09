@@ -268,9 +268,6 @@ quoted_string(<<>>, Fun, Acc) ->
 quoted_string(<<C, Rest/binary>>, Fun, Acc) ->
     quoted_string(Rest, Fun, <<Acc/binary, C>>).
 
-%%quoted_string(<<$\\, C, Rest/binary>>, Fun, Acc) ->
-%%    quoted_string(Rest, Fun, <<Acc/binary, C>>);
-
 %% We need to be able to distinguish between "normal" words and
 %% prepositions in order to split the command into dobj and iobj parts.
 -spec preposition(Data::binary()) -> 
