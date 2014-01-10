@@ -20,7 +20,8 @@
 -export([list/2, list_i/3, verb/2]).
 
 -export_type([match/0]).
- -type match() :: any() | failed | {ambiguous, [binary()]}.
+
+-type match() :: any() | failed | {ambiguous, [binary()]}.
 
 %%%============================================================================
 %%% API

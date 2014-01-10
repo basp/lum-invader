@@ -34,7 +34,11 @@
          is_writable/1, set_write_flag/2, 
          is_fertile/1, set_fertile_flag/2, 
          properties/1, add_property/3, delete_property/2, 
-         get_value/2, set_value/3]).
+         get_value/2, set_value/3,
+         verbs/1, add_verb/3, delete_verb/2,
+         verb_args/2, set_verb_args/3,
+         verb_info/2, set_verb_info/3,
+         verb_code/2, set_verb_code/3]).
 
 -record(object, {id, 
                  parent = nothing, 
@@ -59,6 +63,10 @@
 
 %% Maybe this should be an opaque type wrapping the integer() instead...
 -type objid() :: integer().
+
+-type verb_args()::{(this | none | any), (none | any), (this | none | any)}.
+
+-type verb_info()::{Owner::objid(), Names::[binary()]}.
 
 -export_type([objid/0]).
 
@@ -401,8 +409,113 @@ set_value(Id, Key, Value) ->
 	end.
 
 %%%============================================================================
+%%% Operations on verbs
+%%%============================================================================
+
+-spec verbs(Id::objid()) -> [binary()].
+verbs(Id) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> 
+			F = fun({{_Owner, Names}, _Args, _Code}) -> Names end,
+			lists:concat(lists:map(F, Obj#object.verbs))
+	end.
+
+-spec add_verb(Id::objid(), Info::verb_info(), Args::verb_args()) -> 
+	true | 'E_INVARG'.
+add_verb(Id, Info = {_Owner, [_Names]}, Args = {_Dobj, _Prep, _Iobj}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			NewVerbs = [{Info, Args, none}|Obj#object.verbs],
+			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+	end.	
+
+delete_verb(Id, Str) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[_|T] -> ets:insert(?TABLE_OBJECTS, Obj#object{verbs = T})
+			end
+	end.
+
+verb_info(Id, Str) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[{Info, _, _}|_] -> Info
+			end
+	end.
+
+set_verb_info(Id, Str, Info = {_Owner, [_Names]}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[{_, Args, Code}|Rest] ->
+					NewVerbs = [{Info, Args, Code}|Rest],
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			end
+	end.
+
+verb_args(Id, Str) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[{_, Args, _}|_] -> Args
+			end
+	end.
+
+set_verb_args(Id, Str, Args = {_Dobj, _Prep, _Iobj}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] -> 
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[{Info, _, Code}|Rest] ->
+					NewVerbs = [{Info, Args, Code}|Rest],
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			end
+	end.
+
+verb_code(Id, Str) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[{_, _, Code}|_] -> Code
+			end
+	end.
+
+set_verb_code(Id, Str, Code = {_Module, _Function}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj] ->
+			case find_verbs(Obj#object.verbs, Str) of
+				[] -> 'E_VERBNF';
+				[{Info, Args, _}|Rest] ->
+					NewVerbs = [{Info, Args, Code}|Rest],
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			end
+	end.
+
+%%%============================================================================
 %%% Internal functions
 %%%============================================================================
+
+find_verbs(Verbs, Str) ->
+	F = fun({{_Owner, Names}, _Args, _Code}) ->
+		lists:any(fun(X) -> X =:= Str end, Names)
+	end,
+	lists:filter(F, Verbs).
 
 -spec is_object_flag_set(Id::objid(), Flag::integer()) -> 
 	'E_INVARG' | boolean().
