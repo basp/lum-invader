@@ -30,8 +30,11 @@
     {Verb::binary(), Dobjstr::binary(),
      Prep::binary(), Iobjstr::binary(), Argstr::binary(), Args::[binary()]}.
 
--record(parsed_cmd, {verb = <<>>, argstr = <<>>, args = [], 
-                     dobjstr = <<>>, dobj = nothing, 
+-record(parsed_cmd, {verb = <<>>, 
+                     argstr = <<>>, 
+                     args = [], 
+                     dobjstr = <<>>, 
+                     dobj = nothing, 
                      prepstr = <<>>, iobjstr = <<>>, iobj = nothing}).
 
 %%%============================================================================
@@ -108,7 +111,6 @@ resolve_objstr(_Str, []) ->
 %% Check if we are indexing on a direct object or indirect object.
 %% If we are, we are going to use list_i instead of list.
 resolve_objstr(Str, List) when is_list(List) ->
-    io:format("~p~n", [Str]),
     case Str of
         %% Optimized cases for index 1-9
         <<"1." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 1);
