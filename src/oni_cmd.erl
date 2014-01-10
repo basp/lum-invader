@@ -148,6 +148,8 @@ resolve_objstr(<<"here">>, User) ->
 %% involved matching.
 %%
 %% @TODO This is not complete, we need to match more completely.
+%% Currently we are only looking at `user' contents but we need to also
+%% look at user, location and location contents.
 resolve_objstr(Str, User) ->
     resolve_objstr(Str, oni_db:contents(User)).
 
