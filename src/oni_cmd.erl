@@ -22,7 +22,8 @@
          argstr/1, args/1, 
          dobjstr/1, dobj/1, 
          prepstr/1, 
-         iobjstr/1, iobj/1]).
+         iobjstr/1, iobj/1,
+         match_object/1]).
 
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
@@ -107,17 +108,18 @@ resolve_objstr(_Str, []) ->
 %% Check if we are indexing on a direct object or indirect object.
 %% If we are, we are going to use list_i instead of list.
 resolve_objstr(Str, List) when is_list(List) ->
+    io:format("~p~n", [Str]),
     case Str of
         %% Optimized cases for index 1-9
-        <<"1." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 1);
-        <<"2." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 2);
-        <<"3." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 3);
-        <<"4." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 4);
-        <<"5." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 5);
-        <<"6." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 6);
-        <<"7." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 7);
-        <<"8." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 8);
-        <<"9." , Rest>>     -> oni_match:list_i(match_object(Rest), List, 9);
+        <<"1." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 1);
+        <<"2." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 2);
+        <<"3." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 3);
+        <<"4." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 4);
+        <<"5." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 5);
+        <<"6." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 6);
+        <<"7." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 7);
+        <<"8." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 8);
+        <<"9." , Rest/binary>>  -> oni_match:list_i(match_object(Rest), List, 9);
         %% We can add more optimized cases here if needed
         %% <<"10.", Rest>>     -> ...
         %%
@@ -144,14 +146,15 @@ resolve_objstr(<<"me">>, User) ->
 %% We can easily obtain that and return it.
 resolve_objstr(<<"here">>, User) -> 
     oni_db:location(User);
-%% We are trying to get to something else so we need to do some more
-%% involved matching.
-%%
-%% @TODO This is not complete, we need to match more completely.
-%% Currently we are only looking at `user' contents but we need to also
-%% look at user, location and location contents.
+%% We are trying to get to something else so we'll have to look at 
+%% the stuff we are holding and the stuff that is in the same location.
 resolve_objstr(Str, User) ->
-    resolve_objstr(Str, oni_db:contents(User)).
+    List = case oni_db:location(User) of
+        nothing -> oni_db:contents(User);
+        Location -> 
+            lists:concat([oni_db:contents(User), oni_db:contents(Location)])
+    end,
+    resolve_objstr(Str, List).
 
 %% Utility to match on an object name and/or it's aliases.
 match_object(Str) -> 
