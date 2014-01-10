@@ -17,7 +17,11 @@
 %%%----------------------------------------------------------------------------
 -module(oni).
 
--export([test/0, do_login/3, start/0, stop/0, notify/2, notify/3, 
+-export([test/0, 
+         do_login/3, 
+         start/0, stop/0, 
+         notify/2, notify/3, 
+         say/2, emote/2,
          eval/2, eval_to_str/2]).
 
 -define(INVALID_LOGIN, <<"Invalid player or password">>).
@@ -43,6 +47,31 @@ start() ->
 %% @doc Stops the application.
 stop() ->
     application:stop(oni).
+
+say(User, Data) ->
+    Say = case binary:last(Data) of
+        $!  -> <<"exlaims">>;
+        $?  -> <<"asks">>;
+        _   -> <<"says">>
+    end,
+    Name = oni_db:name(User),
+    Msg = <<Name/binary, " ", Say/binary, ", \"", Data/binary, "\"">>,
+    Contents = case oni_db:location(User) of
+        nothing -> [User];
+        Location -> oni_db:contents(Location)
+    end,
+    Players = lists:filter(fun(X) -> oni_db:is_player(X) end, Contents),
+    lists:foreach(fun(X) -> notify(X, Msg) end, Players).
+
+emote(User, Data) ->
+    Name = oni_db:name(User),
+    Msg = <<Name/binary, " ", Data/binary>>,
+    Contents = case oni_db:location(User) of
+        nothing -> [User];
+        Location -> oni_db:contents(Location)
+    end,
+    Players = lists:filter(fun(X) -> oni_db:is_player(X) end, Contents),
+    lists:foreach(fun(X) -> notify(X, Msg) end, Players).
 
 %% @doc Send a message to specified socket.
 notify(Target, Str) ->

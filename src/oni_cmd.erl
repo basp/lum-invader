@@ -92,7 +92,7 @@ parse(Data, User) ->
                         dobj = resolve_objstr(Dobjstr, User),
                         prepstr = Prepstr, 
                         iobjstr = Iobjstr,
-                        iobj = resolve_objstr(Iobjstr, User)};
+                        iobj = resolve_objstr(Iobjstr, User)}
     end.
 
 %%%============================================================================

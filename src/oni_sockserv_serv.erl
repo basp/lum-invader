@@ -105,9 +105,13 @@ handle_info({tcp, Socket, <<";", Data/binary>>},
             oni:notify(Socket, ?INVALID_CMD),
             {noreply, S}
     end;
-handle_info({tcp, Socket, <<"'", Data/binary>>}, S) ->
-    %% Just a prototype `say' here for checking command order.
-    oni:notify(Socket, "You say, \"~s\"", [oni_bstr:trim(Data)]),
+handle_info({tcp, _Socket, <<"'", Data/binary>>}, 
+             S = #state{next = connected, player = Player}) ->
+    oni:say(Player, oni_bstr:trim(Data)),
+    {noreply, S};
+handle_info({tcp, _Socket, <<":", Data/binary>>},
+             S = #state{next = connected, player = Player}) ->
+    oni:emote(Player, oni_bstr:trim(Data)),
     {noreply, S};
 handle_info({tcp, Socket, Data}, 
              S = #state{next = connected, player = Player}) ->
