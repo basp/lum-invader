@@ -21,7 +21,7 @@
 p(Str) -> oni_cmd:parse(Str, nothing).
 
 final_quote_test() ->
-    ?assertEqual(<<"foo">>, oni_cmd:verb(p(<<"foo = \"bar\"">>))).
+    ?assertEqual(<<"foo">>, oni_cmd:verbstr(p(<<"foo = \"bar\"">>))).
 
 final_quote_with_single_dot_test() ->
-    ?assertEqual(<<"foo">>, oni_cmd:verb(p(<<"foo = \"bar\".">>))).
+    ?assertEqual(<<"foo">>, oni_cmd:verbstr(p(<<"foo = \"bar\".">>))).

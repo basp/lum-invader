@@ -68,6 +68,10 @@
 
 -type verb_info()::{Owner::objid(), Names::[binary()]}.
 
+-type verb_code()::{Module::atom(), Function::atom()}.
+
+%% -type verb_spec()::{verb_info(), verb_args()}.
+
 -export_type([objid/0]).
 
 %%%============================================================================
@@ -423,7 +427,7 @@ verbs(Id) ->
 
 -spec add_verb(Id::objid(), Info::verb_info(), Args::verb_args()) -> 
 	true | 'E_INVARG'.
-add_verb(Id, Info = {_Owner, [_Names]}, Args = {_Dobj, _Prep, _Iobj}) ->
+add_verb(Id, Info = {_Owner, [_|_]}, Args = {_Dobj, _Prep, _Iobj}) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
@@ -431,31 +435,93 @@ add_verb(Id, Info = {_Owner, [_Names]}, Args = {_Dobj, _Prep, _Iobj}) ->
 			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 	end.	
 
-delete_verb(Id, Str) ->
+-spec delete_verb(Id::objid(), Verb::binary() | integer()) -> 
+	true | 'E_INVARG' | 'E_VERBNF'.
+delete_verb(Id, 1) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = []}] -> 'E_VERBNF';
+		[Obj = #object{verbs = [_|T]}] -> 
+			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = T})
+	end;
+delete_verb(Id, N) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj = #object{verbs = Verbs}] ->
+			try lists:split(N - 1, Verbs) of
+				{L1, [_|L2]} -> 
+					NewVerbs = lists:concat([L1, L2]),
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs});
+				_ -> 'E_VERBNF'
+			catch
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+delete_verb(Id, Verb) when is_binary(Verb) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
 				[_|T] -> ets:insert(?TABLE_OBJECTS, Obj#object{verbs = T})
 			end
 	end.
 
-verb_info(Id, Str) ->
+-spec verb_info(Id::objid(), Verb::binary() | integer()) -> 
+	verb_info() | 'E_INVARG' | 'E_VERBNF'.
+verb_info(Id, 1) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = [{X, _, _}|_]}] -> X;
+		_ -> 'E_VERBNF'
+	end;
+verb_info(Id, N) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = Verbs}] ->
+			try lists:nth(N, Verbs) of
+				{X, _, _} -> X
+			catch 
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+verb_info(Id, Verb) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
-				[{Info, _, _}|_] -> Info
+				[{X, _, _}|_] -> X
 			end
 	end.
 
-set_verb_info(Id, Str, Info = {_Owner, [_Names]}) ->
+-spec set_verb_info(Id::objid(), Verb::binary() | integer(), 
+					Info::verb_info()) -> true | 'E_INVARG' | 'E_VERBNF'.
+set_verb_info(Id, 1, Info = {_Owner, [_|_]}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = []}] -> 'E_VERBNF';
+		[Obj = #object{verbs = [{_, Args, Code}|T]}] ->
+			NewVerbs = [{Info, Args, Code}|T],
+			etl:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+	end;
+set_verb_info(Id, N, Info = {_Owner, [_|_]}) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj = #object{verbs = Verbs}] ->
+			try lists:split(N - 1, Verbs) of
+				{L1, [{_, Args, Code}|L2]} ->
+					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			catch 
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+set_verb_info(Id, Verb, Info = {_Owner, [_|_]}) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
 				[{_, Args, Code}|Rest] ->
 					NewVerbs = [{Info, Args, Code}|Rest],
@@ -463,21 +529,60 @@ set_verb_info(Id, Str, Info = {_Owner, [_Names]}) ->
 			end
 	end.
 
-verb_args(Id, Str) ->
+-spec verb_args(Id::objid(), Verb::binary() | integer()) -> 
+	verb_args() | 'E_INVARG' | 'E_VERBNF'.
+verb_args(Id, 1) -> 
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = [{_,X,_}|_]}] -> X;
+		_ -> 'E_VERBNF'
+	end;
+verb_args(Id, N) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = Verbs}] ->
+			try lists:nth(N, Verbs) of
+				{_, X, _} -> X
+			catch 
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+verb_args(Id, Verb) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
 				[{_, Args, _}|_] -> Args
 			end
 	end.
 
-set_verb_args(Id, Str, Args = {_Dobj, _Prep, _Iobj}) ->
+-spec set_verb_args(Id::objid(), Verb::binary() | integer(),
+					Args::verb_args()) -> true | 'E_INVARG' | 'E_VERBNF'.
+set_verb_args(Id, 1, Args = {_Dobj, _Prep, _Iobj}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj = #object{verbs = [{Info, _, Code}|T]}] ->
+			NewVerbs = [{Info, Args, Code}|T],
+			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+	end;
+set_verb_args(Id, N, Args ={_Dobj, _Prep, _Iobj}) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj = #object{verbs = Verbs}] -> 
+			try lists:split(N - 1, Verbs) of
+				{L1, [{Info, _, Code}|L2]} ->
+					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			catch
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+set_verb_args(Id, Verb, Args = {_Dobj, _Prep, _Iobj}) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] -> 
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
 				[{Info, _, Code}|Rest] ->
 					NewVerbs = [{Info, Args, Code}|Rest],
@@ -485,21 +590,60 @@ set_verb_args(Id, Str, Args = {_Dobj, _Prep, _Iobj}) ->
 			end
 	end.
 
-verb_code(Id, Str) ->
+-spec verb_code(Id::objid(), Verb::binary() | integer()) -> 
+	verb_code() | 'E_INVARG' | 'E_VERBNF'.
+verb_code(Id, 1) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = [{_, _, X}|_]}] -> X;
+		_ -> 'E_VERBNF'
+	end;
+verb_code(Id, N) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{verbs = Verbs}] ->
+			try lists:nth(N, Verbs) of
+				{_, _, X} -> X
+			catch
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+verb_code(Id, Verb) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
-				[{_, _, Code}|_] -> Code
+				[{_, _, X}|_] -> X
 			end
 	end.
 
-set_verb_code(Id, Str, Code = {_Module, _Function}) ->
+-spec set_verb_code(Id::objid(), Verb::binary() | integer(),
+					Code::verb_code()) -> true | 'E_INVARG' | 'E_VERBNF'.
+set_verb_code(Id, 1, Code = {_Module, _Function}) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj = #object{verbs = [{Info, Args, _}|T]}] ->
+			NewVerbs = [{Info, Args, Code}|T],
+			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+	end;
+set_verb_code(Id, N, Code = {_Module, _Function}) when is_integer(N), N > 1 ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[Obj = #object{verbs = Verbs}] ->
+			try lists:split(N, Verbs) of
+				{L1, [{Info, Args, _}|L2]} ->
+					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			catch
+				_:_ -> 'E_VERBNF'
+			end
+	end;
+set_verb_code(Id, Verb, Code = {_Module, _Function}) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj] ->
-			case find_verbs(Obj#object.verbs, Str) of
+			case find_verbs(Obj#object.verbs, Verb) of
 				[] -> 'E_VERBNF';
 				[{Info, Args, _}|Rest] ->
 					NewVerbs = [{Info, Args, Code}|Rest],

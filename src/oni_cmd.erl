@@ -18,7 +18,7 @@
 -module(oni_cmd).
 
 -export([parse/2, 
-         verb/1, 
+         verbstr/1, 
          argstr/1, args/1, 
          dobjstr/1, dobj/1, 
          prepstr/1, 
@@ -30,7 +30,7 @@
     {Verb::binary(), Dobjstr::binary(),
      Prep::binary(), Iobjstr::binary(), Argstr::binary(), Args::[binary()]}.
 
--record(parsed_cmd, {verb = <<>>, 
+-record(parsed_cmd, {verbstr = <<>>, 
                      argstr = <<>>, 
                      args = [], 
                      dobjstr = <<>>, 
@@ -44,8 +44,8 @@
 %% First, some simple access functions. 
 
 %% @doc Extracts the verb element from a parsed command.
--spec verb(#parsed_cmd{})                   -> binary().
-verb(#parsed_cmd{verb = Verb})              -> Verb.
+-spec verbstr(#parsed_cmd{})                -> binary().
+verbstr(#parsed_cmd{verbstr = Verbstr})     -> Verbstr.
 
 %% @doc Extracts the argstr element from a parsed command.
 -spec argstr(#parsed_cmd{})                 -> binary().
@@ -80,18 +80,18 @@ iobj(#parsed_cmd{iobj = Iobj})              -> Iobj.
 parse(Data, nothing) ->
     case parse_spec(Data) of
         {Verb, _Dobjstr, Argstr, Args} ->
-            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args};
+            #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args};
         {Verb, _Dobjstr, _Prepstr, _Iobjstr, Argstr, Args} ->
-            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args}
+            #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args}
     end;
 parse(Data, User) ->
     case parse_spec(Data) of
         {Verb, Dobjstr, Argstr, Args} ->
-            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args,
+            #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args,
                         dobjstr = Dobjstr, 
                         dobj = resolve_objstr(Dobjstr, User)};
         {Verb, Dobjstr, Prepstr, Iobjstr, Argstr, Args} ->
-            #parsed_cmd{verb = Verb, argstr = Argstr, args = Args,
+            #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args,
                         dobjstr = Dobjstr,
                         dobj = resolve_objstr(Dobjstr, User),
                         prepstr = Prepstr, 
