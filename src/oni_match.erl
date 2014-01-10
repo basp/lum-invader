@@ -20,8 +20,7 @@
 -export([list/2, list_i/3, verb/2]).
 
 -export_type([match/0]).
-
--type match() :: any() | failed | {ambiguous, [binary()]}.
+ -type match() :: any() | failed | {ambiguous, [binary()]}.
 
 %%%============================================================================
 %%% API
@@ -105,6 +104,6 @@ verb(<<>>, _, true) -> true;
 %% really match.
 verb(_, <<>>, _) -> false;
 
-%% If we arrive here we are totally lost. We might wanna ad some debugging to
+%% If we arrive here we are totally lost. We might wanna add some debugging to
 %% this code point later because getting here is not good.
 verb(_, _, _) -> false.
