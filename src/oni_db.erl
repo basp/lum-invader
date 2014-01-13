@@ -416,7 +416,7 @@ set_value(Id, Key, Value) ->
 %%% Operations on verbs
 %%%============================================================================
 
--spec verbs(Id::objid()) -> [binary()].
+-spec verbs(Id::objid()) -> [binary()] | 'E_INVARG'.
 verbs(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
