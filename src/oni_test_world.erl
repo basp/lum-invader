@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
-%%% @doc Basic verbs.
+%%% @doc Basic world implementation and test functions.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -19,4 +19,8 @@
 
 -compile(export_all).
 
-look(Player, _OtherStuff) -> oni:notify(Player, <<"You look.">>), ok.
+-spec look(Bindings::any()) -> any().
+look(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    oni:notify(Player, <<"You look.">>),
+    {done, Bindings}.
