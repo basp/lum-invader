@@ -142,6 +142,7 @@ rename(Id, Name) ->
 	end.
 
 %% @doc Returns the aliases of given object.
+-spec aliases(Id::objid()) -> [binary()] | 'E_INVARG'.
 aliases(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -149,6 +150,7 @@ aliases(Id) ->
 	end.
 
 %% @doc Sets the aliases of given object to given list.
+-spec set_aliases(Id::objid(), Value::[binary()]) -> true | 'E_INVARG'.
 set_aliases(Id, Value) when is_list(Value) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -416,6 +418,7 @@ set_value(Id, Key, Value) ->
 %%% Operations on verbs
 %%%============================================================================
 
+%% @doc Returns  list of verb names defined on the given object.
 -spec verbs(Id::objid()) -> [binary()] | 'E_INVARG'.
 verbs(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
@@ -425,6 +428,7 @@ verbs(Id) ->
 			lists:concat(lists:map(F, Obj#object.verbs))
 	end.
 
+%% @doc Adds a verb to given object.
 -spec add_verb(Id::objid(), Info::verb_info(), Args::verb_args()) -> 
 	true | 'E_INVARG'.
 add_verb(Id, Info = {_Owner, [_|_]}, Args = {_Dobj, _Prep, _Iobj}) ->
@@ -435,6 +439,7 @@ add_verb(Id, Info = {_Owner, [_|_]}, Args = {_Dobj, _Prep, _Iobj}) ->
 			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 	end.	
 
+%% @doc Deletes the specified verb from given object.
 -spec delete_verb(Id::objid(), Verb::binary() | integer()) -> 
 	true | 'E_INVARG' | 'E_VERBNF'.
 delete_verb(Id, 1) ->
@@ -469,6 +474,7 @@ delete_verb(Id, Verb) when is_binary(Verb) ->
 			end
 	end.
 
+%% @doc Returns the verb info for given object and verb.
 -spec verb_info(Id::objid(), Verb::binary() | integer()) -> 
 	verb_info() | 'E_INVARG' | 'E_VERBNF'.
 verb_info(Id, 1) ->
@@ -498,6 +504,7 @@ verb_info(Id, Verb) ->
 			end
 	end.
 
+%% @doc Sets the verb info for given object and verb.
 -spec set_verb_info(Id::objid(), Verb::binary() | integer(), 
 					Info::verb_info()) -> true | 'E_INVARG' | 'E_VERBNF'.
 set_verb_info(Id, 1, Info = {_Owner, [_|_]}) ->
@@ -535,6 +542,7 @@ set_verb_info(Id, Verb, Info = {_Owner, [_|_]}) ->
 			end
 	end.
 
+%% @doc Returns the verb args for given object and verb.
 -spec verb_args(Id::objid(), Verb::binary() | integer()) -> 
 	verb_args() | 'E_INVARG' | 'E_VERBNF'.
 verb_args(Id, 1) -> 
@@ -564,6 +572,7 @@ verb_args(Id, Verb) ->
 			end
 	end.
 
+%% @doc Sets the verb args for given object and verb.
 -spec set_verb_args(Id::objid(), Verb::binary() | integer(),
 					Args::verb_args()) -> true | 'E_INVARG' | 'E_VERBNF'.
 set_verb_args(Id, 1, Args = {_Dobj, _Prep, _Iobj}) ->
@@ -600,6 +609,7 @@ set_verb_args(Id, Verb, Args = {_Dobj, _Prep, _Iobj}) ->
 			end
 	end.
 
+%% @doc Returns the verb code for given object and verb.
 -spec verb_code(Id::objid(), Verb::binary() | integer()) -> 
 	verb_code() | 'E_INVARG' | 'E_VERBNF'.
 verb_code(Id, 1) ->
@@ -629,6 +639,7 @@ verb_code(Id, Verb) ->
 			end
 	end.
 
+%% @doc Sets the verb code for the given object and verb.
 -spec set_verb_code(Id::objid(), Verb::binary() | integer(),
 					Code::verb_code()) -> true | 'E_INVARG' | 'E_VERBNF'.
 set_verb_code(Id, 1, Code = {_Module, _Function}) ->
