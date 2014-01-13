@@ -503,7 +503,7 @@ set_verb_info(Id, 1, Info = {_Owner, [_|_]}) ->
 		[#object{verbs = []}] -> 'E_VERBNF';
 		[Obj = #object{verbs = [{_, Args, Code}|T]}] ->
 			NewVerbs = [{Info, Args, Code}|T],
-			etl:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
+			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 	end;
 set_verb_info(Id, N, Info = {_Owner, [_|_]}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of

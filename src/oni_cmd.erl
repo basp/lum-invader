@@ -17,7 +17,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni_cmd).
 
--export([parse/2, 
+-export([parse/2,
          verbstr/1, 
          argstr/1, args/1, 
          dobjstr/1, dobj/1, 

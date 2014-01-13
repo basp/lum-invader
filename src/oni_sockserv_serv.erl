@@ -124,6 +124,7 @@ handle_info({tcp, _Socket, <<":", Data/binary>>},
 handle_info({tcp, Socket, Data}, 
              S = #state{next = connected, player = Player}) ->
     Command = oni_cmd:parse(Data, Player),
+    
     oni:notify(Socket, "~p", [Command]),
     {noreply, S};
 handle_info({tcp_closed, Socket}, 
