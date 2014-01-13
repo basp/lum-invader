@@ -448,11 +448,13 @@ delete_verb(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] ->
-			try lists:split(N - 1, Verbs) of
-				{L1, [_|L2]} -> 
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> delete_verb(Id, 1);
+				Index ->
+					{L1, [_|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, L2]),
-					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs});
-				_ -> 'E_VERBNF'
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch
 				_:_ -> 'E_VERBNF'
 			end
@@ -479,8 +481,9 @@ verb_info(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[#object{verbs = Verbs}] ->
-			try lists:nth(N, Verbs) of
-				{X, _, _} -> X
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				Index -> {X, _, _} = lists:nth(Index, Verbs), X
 			catch 
 				_:_ -> 'E_VERBNF'
 			end
@@ -509,8 +512,11 @@ set_verb_info(Id, N, Info = {_Owner, [_|_]}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] ->
-			try lists:split(N - 1, Verbs) of
-				{L1, [{_, Args, Code}|L2]} ->
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> set_verb_info(Id, 1, Info);
+				Index ->
+					{L1, [{_, Args, Code}|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
 					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch 
@@ -541,8 +547,9 @@ verb_args(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[#object{verbs = Verbs}] ->
-			try lists:nth(N, Verbs) of
-				{_, X, _} -> X
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				Index -> {_, X, _} = lists:nth(Index, Verbs), X
 			catch 
 				_:_ -> 'E_VERBNF'
 			end
@@ -570,8 +577,11 @@ set_verb_args(Id, N, Args ={_Dobj, _Prep, _Iobj}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] -> 
-			try lists:split(N - 1, Verbs) of
-				{L1, [{Info, _, Code}|L2]} ->
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> set_verb_args(Id, 1, Args);
+				Index when Index > 1 ->
+					{L1, [{Info, _, Code}|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
 					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch
@@ -602,8 +612,9 @@ verb_code(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[#object{verbs = Verbs}] ->
-			try lists:nth(N, Verbs) of
-				{_, _, X} -> X
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				Index -> {_, _, X} = lists:nth(Index, Verbs), X
 			catch
 				_:_ -> 'E_VERBNF'
 			end
@@ -631,8 +642,11 @@ set_verb_code(Id, N, Code = {_Module, _Function}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] ->
-			try lists:split(N, Verbs) of
-				{L1, [{Info, Args, _}|L2]} ->
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> set_verb_code(Id, 1, Code);
+				Index ->
+					{L1, [{Info, Args, _}|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
 					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch
@@ -654,6 +668,17 @@ set_verb_code(Id, Verb, Code = {_Module, _Function}) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
+
+-spec verb_indices(Verbs::[{verb_info(), verb_args(), verb_code()}]) -> 
+	[integer()].
+verb_indices(Verbs) ->
+	verb_indices(Verbs, [], 1).
+
+verb_indices([], Acc, _Index) -> Acc;
+verb_indices([H|T], Acc, Index) ->
+	{{_Owner, Names}, _Args, _Code} = H,
+	L = lists:map(fun(_) -> Index end, Names),
+	verb_indices(T, lists:concat([Acc, L]), Index + 1).
 
 find_verbs(Verbs, Str) ->
 	F = fun({{_Owner, Names}, _Args, _Code}) ->
