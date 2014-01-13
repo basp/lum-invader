@@ -142,6 +142,7 @@ rename(Id, Name) ->
 	end.
 
 %% @doc Returns the aliases of given object.
+-spec aliases(Id::objid()) -> [binary()] | 'E_INVARG'.
 aliases(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -149,6 +150,7 @@ aliases(Id) ->
 	end.
 
 %% @doc Sets the aliases of given object to given list.
+-spec set_aliases(Id::objid(), Value::[binary()]) -> true | 'E_INVARG'.
 set_aliases(Id, Value) when is_list(Value) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -416,7 +418,8 @@ set_value(Id, Key, Value) ->
 %%% Operations on verbs
 %%%============================================================================
 
--spec verbs(Id::objid()) -> [binary()].
+%% @doc Returns  list of verb names defined on the given object.
+-spec verbs(Id::objid()) -> [binary()] | 'E_INVARG'.
 verbs(Id) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
@@ -425,6 +428,7 @@ verbs(Id) ->
 			lists:concat(lists:map(F, Obj#object.verbs))
 	end.
 
+%% @doc Adds a verb to given object.
 -spec add_verb(Id::objid(), Info::verb_info(), Args::verb_args()) -> 
 	true | 'E_INVARG'.
 add_verb(Id, Info = {_Owner, [_|_]}, Args = {_Dobj, _Prep, _Iobj}) ->
@@ -435,6 +439,7 @@ add_verb(Id, Info = {_Owner, [_|_]}, Args = {_Dobj, _Prep, _Iobj}) ->
 			ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 	end.	
 
+%% @doc Deletes the specified verb from given object.
 -spec delete_verb(Id::objid(), Verb::binary() | integer()) -> 
 	true | 'E_INVARG' | 'E_VERBNF'.
 delete_verb(Id, 1) ->
@@ -448,11 +453,13 @@ delete_verb(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] ->
-			try lists:split(N - 1, Verbs) of
-				{L1, [_|L2]} -> 
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> delete_verb(Id, 1);
+				Index ->
+					{L1, [_|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, L2]),
-					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs});
-				_ -> 'E_VERBNF'
+					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch
 				_:_ -> 'E_VERBNF'
 			end
@@ -467,6 +474,7 @@ delete_verb(Id, Verb) when is_binary(Verb) ->
 			end
 	end.
 
+%% @doc Returns the verb info for given object and verb.
 -spec verb_info(Id::objid(), Verb::binary() | integer()) -> 
 	verb_info() | 'E_INVARG' | 'E_VERBNF'.
 verb_info(Id, 1) ->
@@ -479,8 +487,9 @@ verb_info(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[#object{verbs = Verbs}] ->
-			try lists:nth(N, Verbs) of
-				{X, _, _} -> X
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				Index -> {X, _, _} = lists:nth(Index, Verbs), X
 			catch 
 				_:_ -> 'E_VERBNF'
 			end
@@ -495,6 +504,7 @@ verb_info(Id, Verb) ->
 			end
 	end.
 
+%% @doc Sets the verb info for given object and verb.
 -spec set_verb_info(Id::objid(), Verb::binary() | integer(), 
 					Info::verb_info()) -> true | 'E_INVARG' | 'E_VERBNF'.
 set_verb_info(Id, 1, Info = {_Owner, [_|_]}) ->
@@ -509,8 +519,11 @@ set_verb_info(Id, N, Info = {_Owner, [_|_]}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] ->
-			try lists:split(N - 1, Verbs) of
-				{L1, [{_, Args, Code}|L2]} ->
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> set_verb_info(Id, 1, Info);
+				Index ->
+					{L1, [{_, Args, Code}|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
 					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch 
@@ -529,6 +542,7 @@ set_verb_info(Id, Verb, Info = {_Owner, [_|_]}) ->
 			end
 	end.
 
+%% @doc Returns the verb args for given object and verb.
 -spec verb_args(Id::objid(), Verb::binary() | integer()) -> 
 	verb_args() | 'E_INVARG' | 'E_VERBNF'.
 verb_args(Id, 1) -> 
@@ -541,8 +555,9 @@ verb_args(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[#object{verbs = Verbs}] ->
-			try lists:nth(N, Verbs) of
-				{_, X, _} -> X
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				Index -> {_, X, _} = lists:nth(Index, Verbs), X
 			catch 
 				_:_ -> 'E_VERBNF'
 			end
@@ -557,6 +572,7 @@ verb_args(Id, Verb) ->
 			end
 	end.
 
+%% @doc Sets the verb args for given object and verb.
 -spec set_verb_args(Id::objid(), Verb::binary() | integer(),
 					Args::verb_args()) -> true | 'E_INVARG' | 'E_VERBNF'.
 set_verb_args(Id, 1, Args = {_Dobj, _Prep, _Iobj}) ->
@@ -570,8 +586,11 @@ set_verb_args(Id, N, Args ={_Dobj, _Prep, _Iobj}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] -> 
-			try lists:split(N - 1, Verbs) of
-				{L1, [{Info, _, Code}|L2]} ->
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> set_verb_args(Id, 1, Args);
+				Index when Index > 1 ->
+					{L1, [{Info, _, Code}|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
 					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch
@@ -590,6 +609,7 @@ set_verb_args(Id, Verb, Args = {_Dobj, _Prep, _Iobj}) ->
 			end
 	end.
 
+%% @doc Returns the verb code for given object and verb.
 -spec verb_code(Id::objid(), Verb::binary() | integer()) -> 
 	verb_code() | 'E_INVARG' | 'E_VERBNF'.
 verb_code(Id, 1) ->
@@ -602,8 +622,9 @@ verb_code(Id, N) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[#object{verbs = Verbs}] ->
-			try lists:nth(N, Verbs) of
-				{_, _, X} -> X
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				Index -> {_, _, X} = lists:nth(Index, Verbs), X
 			catch
 				_:_ -> 'E_VERBNF'
 			end
@@ -618,6 +639,7 @@ verb_code(Id, Verb) ->
 			end
 	end.
 
+%% @doc Sets the verb code for the given object and verb.
 -spec set_verb_code(Id::objid(), Verb::binary() | integer(),
 					Code::verb_code()) -> true | 'E_INVARG' | 'E_VERBNF'.
 set_verb_code(Id, 1, Code = {_Module, _Function}) ->
@@ -631,8 +653,11 @@ set_verb_code(Id, N, Code = {_Module, _Function}) when is_integer(N), N > 1 ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
 		[Obj = #object{verbs = Verbs}] ->
-			try lists:split(N, Verbs) of
-				{L1, [{Info, Args, _}|L2]} ->
+			Indices = verb_indices(Verbs),
+			try lists:nth(N, Indices) of
+				1 -> set_verb_code(Id, 1, Code);
+				Index ->
+					{L1, [{Info, Args, _}|L2]} = lists:split(Index - 1, Verbs),
 					NewVerbs = lists:concat([L1, [{Info, Args, Code}|L2]]),
 					ets:insert(?TABLE_OBJECTS, Obj#object{verbs = NewVerbs})
 			catch
@@ -654,6 +679,17 @@ set_verb_code(Id, Verb, Code = {_Module, _Function}) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
+
+-spec verb_indices(Verbs::[{verb_info(), verb_args(), verb_code()}]) -> 
+	[integer()].
+verb_indices(Verbs) ->
+	verb_indices(Verbs, [], 1).
+
+verb_indices([], Acc, _Index) -> Acc;
+verb_indices([H|T], Acc, Index) ->
+	{{_Owner, Names}, _Args, _Code} = H,
+	L = lists:map(fun(_) -> Index end, Names),
+	verb_indices(T, lists:concat([Acc, L]), Index + 1).
 
 find_verbs(Verbs, Str) ->
 	F = fun({{_Owner, Names}, _Args, _Code}) ->
