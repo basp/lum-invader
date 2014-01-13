@@ -15,5 +15,11 @@
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%% @end
 %%%----------------------------------------------------------------------------
--module(oni_rt_serv).
+-module(oni_rt).
 
+-export([exec/1]).
+
+exec(Pack) ->
+    Bindings = oni_pack:bindings(Pack),
+    {M, F} = oni_pack:code(Pack),
+    M:F(Bindings).

@@ -19,8 +19,20 @@
 
 -compile(export_all).
 
--spec look(Bindings::any()) -> any().
 look(Bindings) ->
     Player = proplists:get_value(player, Bindings),
-    oni:notify(Player, <<"You look.">>),
+    case oni_db:location(Player) of
+        nothing -> oni:notify(Player, <<"You are nowhere!">>);
+        Location -> oni:notify(Player, format_room_description(Location))
+    end,
     {done, Bindings}.
+
+look_object(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    oni:notify(Player, <<"You look at something.">>),
+    {done, Bindings}.
+
+format_room_description(Id) ->
+    Name = oni_db:name(Id),
+    <<"You are in ", Name/binary>>.
+    

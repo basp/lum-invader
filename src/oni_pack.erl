@@ -17,7 +17,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni_pack).
 
--export([cmd/2]).
+-export([cmd/2, code/1, bindings/1, match_verb_args/3]).
 
 -record(package, {code = none, bindings = []}).
 
@@ -25,17 +25,25 @@
 %%% API
 %%%============================================================================
 
+%% @doc Get code from package.
+code(#package{code = Code}) -> Code.
+
+%% @doc Get bindings from package.
+bindings(#package{bindings = Bindings}) -> Bindings.
+
 %% @doc Package up a parsed command into something that can
 %% be sent to the runtime.
 %% @end
 cmd(Cmd, User) ->
     Location = oni_db:location(User),
     Dobj = oni_cmd:dobj(Cmd),
+    Prepstr = oni_cmd:prepstr(Cmd),
     Iobj = oni_cmd:iobj(Cmd),
     Verbstr = oni_cmd:verbstr(Cmd),
     Objects = [User, Location, Dobj, Iobj],
-    case lookup_verb(Verbstr, Objects) of
-        none -> Cmd; %% should probably invoke "huh"
+    Args = {Dobj, Prepstr, Iobj},
+    case lookup_verb(Verbstr, Objects, Args) of
+        none -> {error, Cmd}; %% should probably invoke "huh"
         {This, Code} ->
             Bindings = [{player, User},
                         {this, This},
@@ -45,7 +53,7 @@ cmd(Cmd, User) ->
                         {args, oni_cmd:args(Cmd)},
                         {dobjstr, oni_cmd:dobjstr(Cmd)},
                         {dobj, Dobj},
-                        {prepstr, oni_cmd:prepstr(Cmd)},
+                        {prepstr, Prepstr},
                         {iobjstr, oni_cmd:iobjstr(Cmd)},
                         {iobj, oni_cmd:iobj(Cmd)}],
             #package{code = Code, bindings = Bindings}
@@ -55,22 +63,44 @@ cmd(Cmd, User) ->
 %%% Internal functions
 %%%============================================================================
 
--spec lookup_verb(Str::binary(), [Obj::oni_cmd:objid()]) -> 
-    {This::oni_cmd:objid(), {M::atom(), F::atom()}} | none.
-lookup_verb(_Str, []) -> none;
-lookup_verb(Str, [H|T]) ->
+lookup_verb(_Str, [], _Args) -> none;
+lookup_verb(Str, [H|T], Args) ->
     case oni_db:verbs(H) of
-        'E_INVARG' -> lookup_verb(Str, T);
-        Names ->
-            case lookup_verb_name(Str, Names) of
-                false -> lookup_verb(Str, T);
-                Name ->{H, oni_db:verb_code(H, Name)}
+        'E_INVARG' -> lookup_verb(Str, T, Args);
+        Names -> 
+            case match_verb_name(Str, H, Args, Names, 1) of
+                false -> lookup_verb(Str, T, Args);
+                X -> X
             end
     end.
 
-lookup_verb_name(_Str, []) -> false;
-lookup_verb_name(Str, [H|T]) ->
+match_verb_name(_Str, _Obj, _Args, [], _Index) -> false;
+match_verb_name(Str, Obj, Args, [H|T], Index) ->
     case oni_match:verb(Str, H) of
-        true -> H;
-        false -> lookup_verb_name(Str, T)
+        false -> match_verb_name(Str, Obj, Args, T, Index + 1);
+        true -> 
+            Argspec = oni_db:verb_args(Obj, Index),
+            case match_verb_args(Obj, Argspec, Args) of
+                true -> {Obj, oni_db:verb_code(Obj, Index)};
+                false -> match_verb_name(Str, Obj, Args, T, Index + 1)
+            end
     end.
+
+%% Dobj and Iobj specs: none, any, this.
+%% Prep spec: none, any or one of the preps from the oni_cmd module
+match_verb_args(_This, {none, none, none}, {Dobj, Prep, Iobj})
+    when Dobj =:= nothing, Prep =:= <<>>, Iobj =:= nothing -> true;
+match_verb_args(This, {this, any, this}, {Dobj, Prep, Iobj})
+    when Dobj =:= This, Prep =/= <<>>, Iobj =:= This -> true;
+match_verb_args(This, {this, any, any}, {Dobj, Prep, Iobj})
+    when Dobj =:= This, Prep =/= <<>>, Iobj =/= nothing -> true;
+match_verb_args(This, {any, any, this}, {Dobj, Prep, Iobj})
+    when Dobj =/= nothing, Prep =/= <<>>, Iobj =:= This -> true;
+match_verb_args(_This, {any, none, none}, {Dobj, Prep, Iobj})
+    when Dobj =/= nothing, Prep =:= <<>>, Iobj =:= nothing -> true;
+match_verb_args(This, {this, none, none}, {Dobj, Prep, Iobj})
+    when Dobj =:= This, Prep =:= <<>>, Iobj =:= nothing -> true;
+match_verb_args(_This, {any, any, any}, {Dobj, Prep, Iobj})
+    when Dobj =/= nothing, Prep =/= <<>>, Iobj =/= nothing -> true;
+match_verb_args(_This, _, _) -> false.
+
