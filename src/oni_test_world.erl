@@ -55,10 +55,6 @@ create() ->
     true = oni_db:add_verb(Mistress, {Wizard, [<<"l*ook">>]}, {any, none, none}),
     true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, look_object}).
 
-%% @doc Stand-in debug verb.
-%% @TODO: We should expand the examine verbs to include 
-%% information on properties and contents.
-%% @end
 examine(Bindings) ->
     Player = proplists:get_value(player, Bindings),
     Location = oni_db:location(Player),

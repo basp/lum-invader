@@ -35,20 +35,16 @@ bindings(#package{bindings = Bindings}) -> Bindings.
 %% be sent to the runtime.
 %% @end
 cmd(Cmd, User) ->
-    Location = oni_db:location(User),
-    Dobj = oni_cmd:dobj(Cmd),
-    Prepstr = oni_cmd:prepstr(Cmd),
-    Iobj = oni_cmd:iobj(Cmd),
-    Verbstr = oni_cmd:verbstr(Cmd),
+    Location    = oni_db:location(User),
+    Dobj        = oni_cmd:dobj(Cmd),
+    Prepstr     = oni_cmd:prepstr(Cmd),
+    Iobj        = oni_cmd:iobj(Cmd),
+    Verbstr     = oni_cmd:verbstr(Cmd),
     Objects = lists:concat([
-        [User],
-        oni_db:parents(User),
-        [Location],
-        oni_db:parents(Location),
-        [Dobj],
-        oni_db:parents(Dobj),
-        [Iobj],
-        oni_db:parents(Iobj)]),
+        [User],     oni_db:parents(User),
+        [Location], oni_db:parents(Location),
+        [Dobj],     oni_db:parents(Dobj),
+        [Iobj],     oni_db:parents(Iobj)]),
     Args = {Dobj, Prepstr, Iobj},
     case lookup_verb(Verbstr, Objects, Args) of
         none ->
@@ -85,7 +81,7 @@ cmd(Cmd, User) ->
 %%% Internal functions
 %%%============================================================================
 
-%% This will try to match a verbstr on a list objects.
+%% This will try to match a verbstr on a list of objects.
 lookup_verb(_Str, [], _Args) -> none;
 lookup_verb(Str, [H|T], Args) ->
     case oni_db:verbs(H) of
