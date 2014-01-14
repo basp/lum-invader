@@ -25,7 +25,7 @@
 		 create/1, valid/1, recycle/1, max_object/0, 
 		 name/1, rename/2, 
 		 aliases/1, set_aliases/2,
-		 chparent/2, parent/1, children/1, 	 
+		 chparent/2, parent/1, parents/1, children/1, 	 
 		 move/2, location/1, contents/1, 
 		 players/0, is_player/1, set_player_flag/2, 
 		 is_wizard/1, set_wizard_flag/2, 
@@ -179,6 +179,10 @@ parent(Id) ->
 		[] -> 'E_INVARG';
 		[Obj] -> Obj#object.parent
 	end.
+
+%% @doc Returns the ancestors of given object.
+parents(Id) ->
+	parents(Id, []).
 
 %% @doc Returns the objects that have their parent set to specified id.
 -spec children(Id::objid()) -> [objid()] | 'E_INVARG'.
@@ -679,6 +683,13 @@ set_verb_code(Id, Verb, Code = {_Module, _Function}) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
+
+parents(Id, Acc) ->
+	case ets:lookup(?TABLE_OBJECTS, Id) of
+		[] -> 'E_INVARG';
+		[#object{parent = nothing}] -> lists:reverse(Acc);
+		[#object{parent = Parent}] -> parents(Parent, [Parent|Acc])
+	end.
 
 -spec verb_indices(Verbs::[{verb_info(), verb_args(), verb_code()}]) -> 
 	[integer()].

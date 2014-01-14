@@ -17,7 +17,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni_pack).
 
--export([cmd/2, code/1, bindings/1, match_verb_args/3]).
+-export([cmd/2, code/1, bindings/1]).
 
 -record(package, {code = none, bindings = []}).
 
@@ -40,22 +40,44 @@ cmd(Cmd, User) ->
     Prepstr = oni_cmd:prepstr(Cmd),
     Iobj = oni_cmd:iobj(Cmd),
     Verbstr = oni_cmd:verbstr(Cmd),
-    Objects = [User, Location, Dobj, Iobj],
+    Objects = lists:concat([
+        [User],
+        oni_db:parents(User),
+        [Location],
+        oni_db:parents(Location),
+        [Dobj],
+        oni_db:parents(Dobj),
+        [Iobj],
+        oni_db:parents(Iobj)]),
     Args = {Dobj, Prepstr, Iobj},
     case lookup_verb(Verbstr, Objects, Args) of
-        none -> {error, Cmd}; %% should probably invoke "huh"
+        none ->
+            %% We might wanna look for an "huh" override on 
+            %% the player or location.
+            Bindings = [{player,    User},
+                        {this,      nothing},
+                        {caller,    User},
+                        {verb,      Verbstr},
+                        {argstr,    oni_cmd:argstr(Cmd)},
+                        {args,      oni_cmd:args(Cmd)},
+                        {dobjstr,   oni_cmd:dobjstr(Cmd)},
+                        {dobj,      Dobj},
+                        {prepstr,   Prepstr},
+                        {iobjstr,   oni_cmd:iobjstr(Cmd)},
+                        {iobj,      Iobj}],
+            #package{code = {oni, huh}, bindings = Bindings};
         {This, Code} ->
-            Bindings = [{player, User},
-                        {this, This},
-                        {caller, User},
-                        {verb, Verbstr},
-                        {argstr, oni_cmd:argstr(Cmd)},
-                        {args, oni_cmd:args(Cmd)},
-                        {dobjstr, oni_cmd:dobjstr(Cmd)},
-                        {dobj, Dobj},
-                        {prepstr, Prepstr},
-                        {iobjstr, oni_cmd:iobjstr(Cmd)},
-                        {iobj, oni_cmd:iobj(Cmd)}],
+            Bindings = [{player,    User},
+                        {this,      This},
+                        {caller,    User},
+                        {verb,      Verbstr},
+                        {argstr,    oni_cmd:argstr(Cmd)},
+                        {args,      oni_cmd:args(Cmd)},
+                        {dobjstr,   oni_cmd:dobjstr(Cmd)},
+                        {dobj,      Dobj},
+                        {prepstr,   Prepstr},
+                        {iobjstr,   oni_cmd:iobjstr(Cmd)},
+                        {iobj,      Iobj}],
             #package{code = Code, bindings = Bindings}
     end.
 
@@ -103,4 +125,3 @@ match_verb_args(This, {this, none, none}, {Dobj, Prep, Iobj})
 match_verb_args(_This, {any, any, any}, {Dobj, Prep, Iobj})
     when Dobj =/= nothing, Prep =/= <<>>, Iobj =/= nothing -> true;
 match_verb_args(_This, _, _) -> false.
-

@@ -22,8 +22,7 @@
          argstr/1, args/1, 
          dobjstr/1, dobj/1, 
          prepstr/1, 
-         iobjstr/1, iobj/1,
-         match_object/1]).
+         iobjstr/1, iobj/1]).
 
 -type cmdspec() :: 
     {Verb::binary(), Dobjstr::binary(), Argstr::binary(), Args::[binary()]} |
@@ -103,6 +102,15 @@ parse(Data, User) ->
 %%% Internal functions
 %%%============================================================================
 
+%% @doc Utility to match on an object name and/or it's aliases.
+match_object(Str) -> 
+    fun(Id) -> 
+        Names = lists:filter(
+            fun(X) -> is_binary(X) end,
+            [oni_db:name(Id) | oni_db:aliases(Id)]),
+        lists:any(fun(X) -> oni_bstr:starts_with(Str, X) end, Names)
+    end.
+
 -spec resolve_objstr(binary(), oni_db:objid() | [oni_db:objid()]) -> 
     oni_db:objid().
 %% We're resolving on an empty list, nothing to find.
@@ -138,7 +146,7 @@ resolve_objstr(<<>>, _User) ->
 %% We are resolving an object id like '#123'.
 %% At this point we are going to assume the user is sane and is not passing
 %% us something like '#foo' which cannot be parsed safely into an 'integer()'.
-resolve_objstr(<<$#, Rest>>, _User) -> 
+resolve_objstr(<<$#, Rest/binary>>, _User) -> 
     %% TODO: This needs to be more safe.
     binary_to_integer(Rest);
 %% This is easy, we are referring to the user so we can just return that.
@@ -157,15 +165,6 @@ resolve_objstr(Str, User) ->
             lists:concat([oni_db:contents(User), oni_db:contents(Location)])
     end,
     resolve_objstr(Str, List).
-
-%% Utility to match on an object name and/or it's aliases.
-match_object(Str) -> 
-    fun(Id) -> 
-        Names = lists:filter(
-            fun(X) -> is_binary(X) end,
-            [oni_db:name(Id) | oni_db:aliases(Id)]),
-        lists:any(fun(X) -> oni_bstr:starts_with(Str, X) end, Names)
-    end.
 
 %% This parses to a raw command spec tuple that is used internally.
 -spec parse_spec(binary()) -> cmdspec().

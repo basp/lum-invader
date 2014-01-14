@@ -22,11 +22,13 @@
          start/0, stop/0, 
          notify/2, notify/3, 
          say/2, emote/2,
-         eval/2, eval_to_str/2]).
+         huh/1,
+         eval/2, eval_to_str/2,
+         debug/2]).
 
 -define(INVALID_LOGIN, <<"Invalid player or password">>).
 
-%% @doc Development utilitities
+%% @doc Runs basic sanity checks.
 test() ->
     eunit:test([oni_ansi, oni_bstr, oni_cmd, oni_match]).
 
@@ -40,6 +42,11 @@ do_login(Socket, _Command, _Args) ->
     notify(Socket, ?INVALID_LOGIN),
     nothing.
 
+%% @doc Last ditch effort for unknown commands.
+huh(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    notify(Player, <<"That doesn't seem like an option.">>).
+
 %% @doc Starts the application.
 start() ->
     application:start(oni).
@@ -48,6 +55,17 @@ start() ->
 stop() ->
     application:stop(oni).
 
+%% @doc Sends styled debug output.
+debug(Player, Args) ->
+    Rest = list_to_binary(io_lib:format("~p", [Args])),
+    Msg = <<"$bold;$fg_yellow;[$fg_green;debug$fg_yellow;]$reset; ", Rest/binary>>,
+    oni:notify(Player, oni_ansi:style(Msg)).
+    %%Prefix = ,
+    %%oni:notify(Player, <<Prefix/binary, Msg/binary>>).
+
+%% @doc Builtin say verb, this is so frequently used we might 
+%% as well have it here.
+%% @end
 say(User, Data) ->
     Say = case binary:last(Data) of
         $!  -> <<"exlaims">>;
@@ -63,6 +81,7 @@ say(User, Data) ->
     Players = lists:filter(fun(X) -> oni_db:is_player(X) end, Contents),
     lists:foreach(fun(X) -> notify(X, Msg) end, Players).
 
+%% @doc Basic emote verb, just as with the "say" verb, this is frequently used.
 emote(User, Data) ->
     Name = oni_db:name(User),
     Msg = <<Name/binary, " ", Data/binary>>,
@@ -107,5 +126,6 @@ eval(Str, Bindings) ->
     {ok, ExprList} = erl_parse:parse_exprs(Tokens),
     erl_eval:expr_list(ExprList, Bindings).
 
+%% @doc Helper for the login function.
 find_players(Name) ->
     lists:filter(fun(Id) -> oni_db:name(Id) =:= Name end, oni_db:players()).

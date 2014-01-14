@@ -25,10 +25,16 @@
 %%% application callbacks
 %%%============================================================================
 
+%% @doc Callback for application behaviour. 
+%% Initializes the object db and the "who" table and then starts the application.
+%% @end
 start(_Args, _Type) ->
     oni_db:init(),
     oni_who:init(),
     oni_sup:start_link().
 
+%% @doc Callback for application behaviour. 
+%% Stops the application.
+%% @end
 stop(_State) ->
     ok.
