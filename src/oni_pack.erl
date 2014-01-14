@@ -85,6 +85,7 @@ cmd(Cmd, User) ->
 %%% Internal functions
 %%%============================================================================
 
+%% This will try to match a verbstr on a list objects.
 lookup_verb(_Str, [], _Args) -> none;
 lookup_verb(Str, [H|T], Args) ->
     case oni_db:verbs(H) of
@@ -96,6 +97,8 @@ lookup_verb(Str, [H|T], Args) ->
             end
     end.
 
+%% This one has a bit of state that we have to pass along. Especially
+%% annoying is the Index which we need to do accurate verb manipulation.
 match_verb_name(_Str, _Obj, _Args, [], _Index) -> false;
 match_verb_name(Str, Obj, Args, [H|T], Index) ->
     case oni_match:verb(Str, H) of
