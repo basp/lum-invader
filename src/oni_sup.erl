@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
-%%% @doc This is the main supervisor acting on failure of critical processes.
+%%% @doc This is the main supervisor.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -35,6 +35,8 @@ init([]) ->
                    permanent, 2000, supervisor, [oni_sockserv_serv]},
     EventManager = {oni_event, {oni_event, start_link, []},
                     permanent, 2000, worker, [oni_event]},
-    Children = [SockservSup, EventManager],
+    RtServ = {oni_rt_serv, {oni_rt_serv, start_link, []},
+          permanent, 2000, worker, [oni_rt_serv]},
+    Children = [SockservSup, EventManager, RtServ],
     RestartStrategy = {one_for_one, 4, 3600},
     {ok, {RestartStrategy, Children}}.

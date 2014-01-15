@@ -34,6 +34,7 @@
 -record(state, {listener, 
                 next, 
                 bindings = [],
+                aq = none,
                 player = nothing}).
 
 %% API
@@ -128,7 +129,7 @@ handle_info({tcp, Socket, Data},
         {error, Command} ->
             oni:notify(Socket, "[huh?] ~p", [Command]);
         Pack ->
-            oni_rt:exec(Pack)
+            oni_rt_serv:exec(Pack)
     end,
     {noreply, S};
 handle_info({tcp_closed, Socket}, 

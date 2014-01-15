@@ -15,10 +15,10 @@
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%% @end
 %%%----------------------------------------------------------------------------
--module(oni_aq).
+-module(oni_aq_proto).
 
 %% API
--export([start_link/0, queue/2, clear/1]).
+-export([start_link/1, queue/2, clear/1]).
 
 %%%============================================================================
 %%% API

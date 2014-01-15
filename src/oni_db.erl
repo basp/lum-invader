@@ -410,11 +410,12 @@ set_value(Id, player, Value) -> set_player_flag(Id, Value);
 set_value(Id, Key, Value) ->
 	case ets:lookup(?TABLE_OBJECTS, Id) of
 		[] -> 'E_INVARG';
-		[Obj] ->
-			case lists:keyfind(Key, 1, Obj#object.props) of
+		[Obj = #object{props = Props}] ->
+			case lists:keyfind(Key, 1, Props) of
 				false -> 'E_PROPNF';
 				{_Key, {_V, Info}} -> 
-					lists:keyreplace(Key, 1, {Key, {Value, Info}})
+					NewProps = lists:keyreplace(Key, 1, Props, {Key, {Value, Info}}),
+					ets:insert(?TABLE_OBJECTS, Obj#object{props = NewProps})
 			end
 	end.
 

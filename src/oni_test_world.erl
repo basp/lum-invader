@@ -98,3 +98,10 @@ look_self(Self, Bindings) ->
 format_room_description(Id) ->
     Name = oni_db:name(Id),
     <<"You are in ", Name/binary>>.
+
+start_foo(Bindings) ->
+    io:format("You start fooing.~n"),
+    {continue, 2000, {oni_test_world, finish_foo, [Bindings]}}.
+
+finish_foo(_Bindings) ->
+    io:format("You finish fooing.~n").
