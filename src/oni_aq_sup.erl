@@ -15,17 +15,14 @@
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%% @end
 %%%----------------------------------------------------------------------------
--module(oni_sockserv_sup).
+-module(oni_aq_sup).
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_socket/0]).
+-export([start_link/0, start_queue/1]).
 
 %% supervisor callbacks
 -export([init/1]).
-
-%% Low number for development, increase this as at will.
--define(NUM_READY_LISTENERS, 1).
 
 %%%============================================================================    
 %%% API
@@ -34,26 +31,19 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_socket() ->
-    supervisor:start_child(?MODULE, []).
+start_queue(Obj) ->
+    supervisor:start_child(?MODULE, [Obj]).
 
 %%%============================================================================    
 %%% supervisor callbacks
 %%%============================================================================
 
-init([]) ->
-    {ok, Port} = application:get_env(port),
-    {ok, ListenSocket} = gen_tcp:listen(Port, [{active, once}]),
-    spawn_link(fun ready_listeners/0),
+init(_Obj) ->
     Strategy = {simple_one_for_one, 60, 3600},
-    Spec = {socket, {oni_sockserv_serv, start_link, [ListenSocket]},
-            temporary, 1000, worker, [oni_sockserv_serv]},
+    Spec = {aq, {oni_aq_serv, start_link, []},
+            permanent, 1000, worker, [oni_aq_serv]},
     {ok, {Strategy, [Spec]}}.
 
 %%%============================================================================    
 %%% Internal functions
 %%%============================================================================
-
-ready_listeners() ->
-    [start_socket() || _ <- lists:seq(1, ?NUM_READY_LISTENERS)],
-    ok.

@@ -18,7 +18,7 @@
 -module(oni_aq_serv).
 -behaviour(gen_server).
 
--record(state, {obj = nothing, queue = queue:new()}).
+-record(state, {queue}).
 
 %% API
 -export([start_link/1, queue/4, queue/2, next/1, clear/1]).
@@ -27,28 +27,39 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
+-define(MAX_QUEUE, 2).
+
 %%%============================================================================
 %%% API
 %%%============================================================================
 
--spec start_link(Obj::oni_db:objid()) -> any().
+%% @doc Starts the action queue server.
+-spec start_link(Obj::oni_db:objid()) -> pid().
 start_link(Obj) ->
-    gen_server:start_link(?MODULE, Obj, []).
+    error_logger:info_msg("Queue started for object ~p~n", [Obj]),
+    gen_server:start_link(?MODULE, [], []).
 
+%% @doc Queues an action item.
 -spec queue(Pid::pid(), Module::atom(), Function::atom(), Args::[any()]) -> 
     queued | ok.
 queue(Pid, Module, Function, Args) ->
     gen_server:call(Pid, {queue, {Module, Function, Args}}).
 
+%% @doc Queues an action item using MFA form.
 -spec queue(Pid::pid(), {Module::atom(), Function::atom(), Args::[any]}) ->
     queued | ok.
 queue(Pid, MFA) ->
     gen_server:call(Pid, {queue, MFA}).
 
+%% @doc Clears the queue.
 -spec clear(Pid::pid()) -> ok.
 clear(Pid) ->
     gen_server:cast(Pid, clear).
 
+%% @doc Signals the queue to continue with the next action item.
+%% Note, this method is used internally to signal the completion of
+%% long running (continuation) actions.
+%% @end
 -spec next(Pid::pid()) -> ok.
 next(Pid) ->
     gen_server:cast(Pid, next).
@@ -57,17 +68,22 @@ next(Pid) ->
 %%% gen_server callbacks
 %%%============================================================================
 
-init(Obj) ->
-    {ok, #state{obj = Obj}}.
+init([]) ->
+    {ok, #state{queue = queue:new()}}.
 
 handle_call({queue, MFA}, _From, S = #state{queue = Queue}) ->
     NewQueue = queue:in(MFA, Queue),
-    case queue:is_empty(Queue) of
-        true -> 
-            execute(self(), MFA),
+    case queue:len(Queue) of
+        0 -> 
+            %% The initial queue was empty so start executing immediately.
+            execute(self(), MFA), 
             {reply, ok, S#state{queue = NewQueue}};
-        false -> 
-            {reply, queued, S}
+        Len when Len >= ?MAX_QUEUE -> 
+            %% Max queue size reached, just drop the action.
+            {reply, full, S#state{queue = Queue}};
+        _ -> 
+            %% Queue the action.
+            {reply, queued, S#state{queue = NewQueue}}
     end.
 
 handle_cast(clear, S) ->
@@ -97,8 +113,11 @@ execute(Pid, {Module, Function, Args}) ->
     F = fun() -> 
         R = apply(Module, Function, Args),
         case R of
-            {continue, Time, CMFA} -> timer:sleep(Time), execute(Pid, CMFA);
-            _Other -> next(Pid)
+            {continue, Time, CMFA} -> 
+                timer:sleep(Time), 
+                execute(Pid, CMFA);
+            _Other -> 
+                next(Pid)
         end
     end,
     spawn(F).

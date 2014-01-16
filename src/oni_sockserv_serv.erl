@@ -34,7 +34,6 @@
 -record(state, {listener, 
                 next, 
                 bindings = [],
-                aq = none,
                 player = nothing}).
 
 %% API
@@ -81,6 +80,7 @@ handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
         nothing -> {noreply, S};
         Player -> 
             oni_who:insert_connection(Player, Socket),
+            oni_aq:start_queue(Player),
             oni_event:player_connected(Socket, Player),
             {noreply, S#state{next = connected, player = Player}}
     end;
@@ -134,6 +134,7 @@ handle_info({tcp, Socket, Data},
     {noreply, S};
 handle_info({tcp_closed, Socket}, 
              S = #state{next = connected, player = Player}) ->
+    %% oni_aq:delete_queue(Player),
     oni_who:delete_connection(Player),
     oni_event:disconnected(Socket),
     {stop, normal, S};

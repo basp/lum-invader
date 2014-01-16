@@ -18,7 +18,8 @@
 -module(oni_event).
 
 -export([start_link/0, add_handler/2, delete_handler/2, 
-         connected/1, disconnected/1, player_connected/2]).
+         connected/1, disconnected/1, player_connected/2,
+         aq_started/1, aq_terminated/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -45,3 +46,9 @@ disconnected(Socket) ->
 %% @doc Sends the player_connected event.
 player_connected(Socket, Player) ->
 	gen_event:notify(?SERVER, {player_connected, Socket, Player}).
+
+aq_started(Obj) ->
+    gen_event:notify(?SERVER, {aq_started, Obj}).
+
+aq_terminated(Obj) ->
+    gen_event:notify(?SERVER, {aq_terminated, Obj}).

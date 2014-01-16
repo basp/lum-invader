@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
-%%% @doc This is the main supervisor.
+%%% @doc Main action queue API.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -15,30 +15,32 @@
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%% @end
 %%%----------------------------------------------------------------------------
--module(oni_sup).
+-module(oni_aq).
 
--behaviour(supervisor).
+-export([init/0, start_queue/1, queue/4]).
 
-%% API
--export([start_link/0]).
+-define(TABLE_AQS, oni_action_queues).
 
-%% supervisor callbacks
--export([init/1]).
+-record(queue, {objid = nothing, queues = []}).
 
--define(SERVER, ?MODULE).
+init() ->
+    ets:new(?TABLE_AQS, [set, {keypos, #queue.objid}, named_table, public]).
 
-start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+start_queue(Obj) ->
+    NewValue = 
+        case ets:lookup(?TABLE_AQS, Obj) of
+            [] -> 
+                {ok, Pid} = oni_aq_sup:start_queue(Obj),
+                [#queue{objid = Obj, queues = [Pid]}];
+            [#queue{queues = [Pid]}] ->
+                [#queue{objid = Obj, queues = [Pid]}]
+        end,
+    ets:insert(?TABLE_AQS, NewValue),
+    Pid.
 
-init([]) ->
-    SockservSup = {oni_sockserv_sup, {oni_sockserv_sup, start_link, []},
-                   permanent, 2000, supervisor, [oni_sockserv_serv]},
-    EventManager = {oni_event, {oni_event, start_link, []},
-                    permanent, 2000, worker, [oni_event]},
-    RtServ = {oni_rt_serv, {oni_rt_serv, start_link, []},
-          permanent, 2000, worker, [oni_rt_serv]},
-    AqSup = {oni_aq_sup, {oni_aq_sup, start_link, []},
-             permanent, 2000, supervisor, [oni_aq_sup]},
-    Children = [SockservSup, EventManager, RtServ, AqSup],
-    RestartStrategy = {one_for_one, 4, 3600},
-    {ok, {RestartStrategy, Children}}.
+queue(Obj, M, F, A) ->
+    case ets:lookup(?TABLE_AQS, Obj) of
+        [] -> 'E_INVARG';
+        [#queue{queues = [Pid|_]}] ->
+            oni_aq_serv:queue(Pid, M, F, A)
+    end.
