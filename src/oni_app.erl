@@ -30,8 +30,8 @@
 %% @end
 start(_Args, _Type) ->
     oni_db:init(),          %% Initialize ETS tables
-    oni_who:init(),         %% ...
-    oni_aq:init(),          %% ...
+    oni_who:init(),         %% 2
+    oni_aq:init(),          %% 1
     oni_sup:start_link().   %% Go!
 
 %% @doc Callback for application behaviour. 
