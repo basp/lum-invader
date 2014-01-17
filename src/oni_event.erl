@@ -21,7 +21,7 @@
          add_handler/2, delete_handler/2, 
          connected/1, disconnected/1, 
          player_connected/2, player_disconnected/2,
-         action_queue_started/1, action_queue_stopped/1]).
+         action_queue_started/2, action_queue_stopped/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -52,8 +52,8 @@ player_connected(Socket, Player) ->
 player_disconnected(Socket, Player) ->
     gen_event:notify(?SERVER, {player_disconnected, Socket, Player}).
 
-action_queue_started(Obj) ->
-    gen_event:notify(?SERVER, {action_queue_started, Obj}).
+action_queue_started(Obj, Pid) ->
+    gen_event:notify(?SERVER, {action_queue_started, Obj, Pid}).
 
-action_queue_stopped(Obj) ->
-    gen_event:notify(?SERVER, {action_queue_stopped, Obj}).
+action_queue_stopped(Obj, Pid) ->
+    gen_event:notify(?SERVER, {action_queue_stopped, Obj, Pid}).

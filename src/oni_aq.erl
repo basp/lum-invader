@@ -1,6 +1,9 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
-%%% @doc Main action queue API.
+%%% @doc Operations for the action queue table.
+%%%
+%%% These are in a separate module because they are used by both the
+%%% action queue supervisor and the action queue server modules.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -14,47 +17,23 @@
 %%% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%% @end
-%%%----------------------------------------------------------------------------
--module(oni_aq).
+%%%-----------------------------------------------------------------------------
+module(oni_aq).
 
--export([init/0, start/1, queue/2, queue/4, clear/1]).
+-export([init/0, lookup/1, insert/2]).
 
 -define(TABLE_AQS, oni_action_queues).
 
 -record(queue, {objid = nothing, queues = []}).
 
-start(Obj) ->
-    NewValue = 
-        case ets:lookup(?TABLE_AQS, Obj) of
-            [] -> 
-                {ok, Pid} = oni_aq_sup:start_queue(Obj),
-                oni_event:action_queue_started(Obj),
-                [#queue{objid = Obj, queues = [Pid]}];
-            [#queue{queues = [Pid]}] ->
-                [#queue{objid = Obj, queues = [Pid]}]
-        end,
-    Pid.
+init() ->
+    ets:new(?TABLE_AQS, [set, {keypos, #queue.objid}, named_table, public]).
 
-clear(Obj) ->
+lookup(Obj) ->
     case ets:lookup(?TABLE_AQS, Obj) of
-        [] -> false;
-        [#queue{queues = [Pid]}] -> oni_aq_serv:clear(Pid)
+        [] -> [];
+        [#queue{queues = [Pid]}] -> [Pid]
     end.
 
-queue(Obj, Pack) ->
-    {M, F} = oni_pack:code(Pack),
-    Bindings = oni_pack:bindings(Pack),
-    Player = proplists:get_value(player, Bindings),
-    Verb = proplists:get_value(verb, Bindings),
-    case queue(Obj, M, F, [Bindings]) of
-        queued -> oni:notify(Player, "[ queued - '~s' ]", [Verb]);
-        full -> oni:notify(Player, "[ max queue size reached ]", []);
-        _ -> ok       
-    end.
-
-queue(Obj, M, F, A) ->
-    case ets:lookup(?TABLE_AQS, Obj) of
-        [] -> 'E_INVARG';
-        [#queue{queues = [Pid|_]}] ->
-            oni_aq_serv:queue(Pid, M, F, A)
-    end.
+insert(Obj, Pid) ->
+    ets:insert(?TABLE_AQS, #queue{objid = Obj, queues = [Pid]}).

@@ -47,10 +47,10 @@ init([]) ->
 
 handle_event({connected, Socket}, State) ->
     {ok, {Address, _Port}} = inet:peername(Socket),
-    error_logger:info_msg("~p ~p connected~n", [Socket, Address]),
+    error_logger:info_msg("Anonymous ~p connected on ~p~n", [Address, Socket]),
     {ok, State};
 handle_event({disconnected, Socket}, State) ->
-    error_logger:info_msg("~p disconnected~n", [Socket]),
+    error_logger:info_msg("Anonymous disconnected from ~p~n", [Socket]),
     {ok, State};
 handle_event({player_connected, Socket, Player}, State) ->
     Name = oni_db:name(Player),
@@ -60,13 +60,13 @@ handle_event({player_disconnected, Socket, Player}, State) ->
     Name = oni_db:name(Player),
     error_logger:info_msg("Player #~p (~p) disconnected from ~p~n", [Player, Name, Socket]),
     {ok, State};
-handle_event({action_queue_started, Obj}, State) ->
+handle_event({action_queue_started, Obj, Pid}, State) ->
     Name = oni_db:name(Obj),
-    error_logger:info_msg("Started action queue for object #~p (~p)~n", [Obj, Name]),
+    error_logger:info_msg("Started action queue ~p for object #~p (~p)~n", [Pid, Obj, Name]),
     {ok, State};
-handle_event({action_queue_stopped, Obj}, State) ->
+handle_event({action_queue_stopped, Obj, Pid}, State) ->
     Name = oni_db:name(Obj),
-    error_logger:info_msg("Stopped action queue for object #~p (~p)~n", [Obj, Name]),
+    error_logger:info_msg("Stopped action queue ~p for object #~p (~p)~n", [Pid, Obj, Name]),
     {ok, State}.
 
 handle_call(_Request, State) ->

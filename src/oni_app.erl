@@ -31,7 +31,6 @@
 start(_Args, _Type) ->
     oni_db:init(),          
     oni_who:init(),         
-    oni_aq:init(),          
     oni_sup:start_link().
 
 %% @doc Callback for application behaviour. 

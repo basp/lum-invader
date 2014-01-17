@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
-%%% @doc Implements the callbacks for the accept socket supervisor.
+%%% @doc Action queue server supervisor.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -19,34 +19,52 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_queue/1, get_queue/1]).
+-export([start_link/0, start_queue/1, queue/2, queue/4, clear/1]).
 
 %% supervisor callbacks
 -export([init/1]).
-
--define(TABLE_AQS, oni_action_queues).
-
--record(queue, {objid = nothing, queues = []}).
 
 %%%============================================================================    
 %%% API
 %%%============================================================================
 
 start_link() ->
+    oni_aq:init(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 start_queue(Obj) ->
-    case ets:lookup(?TABLE_AQS, Obj) of
-    Pid = supervisor:start_child(?MODULE, [Obj]),
-    ets:insert(?TABLE_AQS, #queue{objid = Obj, queues = [Pid]}),
-    Pid.
+    case oni_aq:lookup(Obj) of
+        [] -> supervisor:start_child(?MODULE, [Obj]);
+        [Pid] -> {already_running, Pid}
+    end.
 
+clear(Obj) ->
+    case oni_aq:lookup(Obj) of
+        [] -> false;
+        [Pid] -> oni_aq_serv:clear(Pid)
+    end.
+
+queue(Obj, Pack) ->
+    {M, F} = oni_pack:code(Pack),
+    Bindings = oni_pack:bindings(Pack),
+    Player = proplists:get_value(player, Bindings),
+    Verb = proplists:get_value(verb, Bindings),
+    case queue(Obj, M, F, [Bindings]) of
+        queued -> oni:notify(Player, "[ queued - '~s' ]", [Verb]);
+        full -> oni:notify(Player, "[ max queue size reached ]", []);
+        _ -> ok       
+    end.
+
+queue(Obj, M, F, A) ->
+    case oni_aq:lookup(Obj) of
+        [] -> 'E_INVARG';
+        [Pid] -> oni_aq_serv:queue(Pid, M, F, A)
+    end.
 %%%============================================================================    
 %%% supervisor callbacks
 %%%============================================================================
 
 init(_Obj) ->
-    ets:new(?TABLE_AQS, [set, {keypos, #queue.objid}, named_table, public]).
     Strategy = {simple_one_for_one, 60, 3600},
     Spec = {aq, {oni_aq_serv, start_link, []},
             permanent, 1000, worker, [oni_aq_serv]},

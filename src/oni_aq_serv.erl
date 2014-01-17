@@ -18,7 +18,7 @@
 -module(oni_aq_serv).
 -behaviour(gen_server).
 
--record(state, {queue}).
+-record(state, {objid, queue}).
 
 %% API
 -export([start_link/1, queue/4, queue/2, next/1, clear/1]).
@@ -34,9 +34,12 @@
 %%%============================================================================
 
 %% @doc Starts an action queue server.
--spec start_link(Obj::oni_db:objid()) -> pid().
-start_link(_Obj) ->
-    gen_server:start_link(?MODULE, [], []).
+-spec start_link(Obj::oni_db:objid()) -> {ok, pid()}.
+start_link(Obj) ->
+    {ok, Pid} = gen_server:start_link(?MODULE, Obj, []),
+    oni_event:action_queue_started(Obj, Pid),
+    oni_aq:insert(Obj, Pid),
+    {ok, Pid}.
 
 %% @doc Queues an action item.
 -spec queue(Pid::pid(), Module::atom(), Function::atom(), Args::[any()]) -> 
@@ -67,8 +70,8 @@ next(Pid) ->
 %%% gen_server callbacks
 %%%============================================================================
 
-init([]) ->
-    {ok, #state{queue = queue:new()}}.
+init(Obj) ->
+    {ok, #state{objid = Obj, queue = queue:new()}}.
 
 handle_call({queue, MFA}, _From, S = #state{queue = Queue}) ->
     NewQueue = queue:in(MFA, Queue),
@@ -98,7 +101,9 @@ handle_cast(next, S = #state{queue = Queue}) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, #state{objid = Obj}) ->
+    %% Doesn't really seem to get here...
+    oni_event:action_queue_stopped(Obj, self()),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
