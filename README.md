@@ -162,21 +162,17 @@ Basic verbs like `l*ook` should be instant. Looking around doesn't take much lon
 
 Oni supports this scenario out of the box and built right into the runtime. It is heavily inspired by the `actor` implementation in __HellCore__ and aims to offer the same sort of functionality. As we said earlier, every user is assigned a `oni_aq_serv` process that is his or her (or _its_ even) personal action queue. This queue will even survive reconnects as long as the Oni app is running so it should be only spawned once for each user. 
 
-To test out the action queue, let's write a simple action verb. These consist of three functions: a `start_something` function and a `finish_something` function that form the action chain and a `something` function that queues the `start_something` verb. This sounds more complicated than it really is so let's implement the `survey` verb in the `sandbox` module:
+To test out the action queue, let's write a simple action verb. These consist of three functions: a `start_something` function and a `finish_something` function that form the action chain and a `something` function that queues the `start_something` verb. This sounds more complicated than it really is so let's implement the `survey` verb in the `sandbox` module.
 
-    %% This will create a new package for the start_survey function
-    %% and queue that on the player action queue. We don't want the
-    %% runtime itself to _know_ all verbs so the burden of queuing 
-    %% actions is on the verb implementors.
+This will create a new `package` for the `start_survey` function and queue that on the player action queue. We don't want the runtime itself to _know_ all verbs so the burden of queuing actions is on the verb implementors:
+
     survey(Bindings) ->
         Player = proplists:get_value(player, Bindings),
         Pack = oni_pack:create({sandbox, start_survey}, Bindings),
         oni_aq_sup:queue(Player, Pack).
 
-    %% This will start the survey action. Long running actions are 
-    %% implemented as continuations so we can have quick bursts of
-    %% activity on oni_rt_serv and a lot of suspending of individual
-    %% processes (we don't want the runtime to block).
+This will start the `survey` action. Long running actions are  implemented as continuations so we can have quick bursts of activity on `oni_rt_serv` and a lot of suspending of individual processes (we don't want `oni_rt_serv` to block).
+
     start_survey(Bindings) ->
         Player = proplists:get_value(player, Bindings),
         oni:notify(Player, "You start surveying your surroundings."),
@@ -184,9 +180,8 @@ To test out the action queue, let's write a simple action verb. These consist of
         %% and a continuation MFA (Module, Function, Args). 
         {continue, 3000, {sandbox, finish_survey, [Bindings]}}.
 
-    %% This will finish up the survey action. The start - finish
-    %% pattern is very basic but useful. There are more patterns
-    %% available though if you have more complicated actions.
+This will finish up the `survey` action. The `start` and `finish` pattern is very basic but useful. There are more patterns available though if you have more complicated actions (more on those later).
+
     finish_survey(Bindings) ->
         Player = proplists:get_value(player, Bindings),
         oni:notify(Player, "You finish surveying your surroundings.").        
