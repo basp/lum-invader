@@ -17,9 +17,11 @@
 %%%----------------------------------------------------------------------------
 -module(oni_event).
 
--export([start_link/0, add_handler/2, delete_handler/2, 
-         connected/1, disconnected/1, player_connected/2,
-         aq_started/1, aq_terminated/1]).
+-export([start_link/0, 
+         add_handler/2, delete_handler/2, 
+         connected/1, disconnected/1, 
+         player_connected/2, player_disconnected/2,
+         action_queue_started/1, action_queue_stopped/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -47,8 +49,11 @@ disconnected(Socket) ->
 player_connected(Socket, Player) ->
 	gen_event:notify(?SERVER, {player_connected, Socket, Player}).
 
-aq_started(Obj) ->
-    gen_event:notify(?SERVER, {aq_started, Obj}).
+player_disconnected(Socket, Player) ->
+    gen_event:notify(?SERVER, {player_disconnected, Socket, Player}).
 
-aq_terminated(Obj) ->
-    gen_event:notify(?SERVER, {aq_terminated, Obj}).
+action_queue_started(Obj) ->
+    gen_event:notify(?SERVER, {action_queue_started, Obj}).
+
+action_queue_stopped(Obj) ->
+    gen_event:notify(?SERVER, {action_queue_stopped, Obj}).

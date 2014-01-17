@@ -17,26 +17,40 @@
 %%%----------------------------------------------------------------------------
 -module(oni_aq).
 
--export([init/0, start_queue/1, queue/4]).
+-export([init/0, start/1, queue/2, queue/4, clear/1]).
 
 -define(TABLE_AQS, oni_action_queues).
 
 -record(queue, {objid = nothing, queues = []}).
 
-init() ->
-    ets:new(?TABLE_AQS, [set, {keypos, #queue.objid}, named_table, public]).
-
-start_queue(Obj) ->
+start(Obj) ->
     NewValue = 
         case ets:lookup(?TABLE_AQS, Obj) of
             [] -> 
                 {ok, Pid} = oni_aq_sup:start_queue(Obj),
+                oni_event:action_queue_started(Obj),
                 [#queue{objid = Obj, queues = [Pid]}];
             [#queue{queues = [Pid]}] ->
                 [#queue{objid = Obj, queues = [Pid]}]
         end,
-    ets:insert(?TABLE_AQS, NewValue),
     Pid.
+
+clear(Obj) ->
+    case ets:lookup(?TABLE_AQS, Obj) of
+        [] -> false;
+        [#queue{queues = [Pid]}] -> oni_aq_serv:clear(Pid)
+    end.
+
+queue(Obj, Pack) ->
+    {M, F} = oni_pack:code(Pack),
+    Bindings = oni_pack:bindings(Pack),
+    Player = proplists:get_value(player, Bindings),
+    Verb = proplists:get_value(verb, Bindings),
+    case queue(Obj, M, F, [Bindings]) of
+        queued -> oni:notify(Player, "[ queued - '~s' ]", [Verb]);
+        full -> oni:notify(Player, "[ max queue size reached ]", []);
+        _ -> ok       
+    end.
 
 queue(Obj, M, F, A) ->
     case ets:lookup(?TABLE_AQS, Obj) of

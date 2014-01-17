@@ -33,10 +33,9 @@
 %%% API
 %%%============================================================================
 
-%% @doc Starts the action queue server.
+%% @doc Starts an action queue server.
 -spec start_link(Obj::oni_db:objid()) -> pid().
-start_link(Obj) ->
-    error_logger:info_msg("Queue started for object ~p~n", [Obj]),
+start_link(_Obj) ->
     gen_server:start_link(?MODULE, [], []).
 
 %% @doc Queues an action item.
@@ -111,7 +110,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 execute(Pid, {Module, Function, Args}) ->
     F = fun() -> 
-        R = apply(Module, Function, Args),
+        R = oni_rt_serv:exec(Module, Function, Args),
         case R of
             {continue, Time, CMFA} -> 
                 timer:sleep(Time), 

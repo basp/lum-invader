@@ -69,43 +69,35 @@ handle_cast(accept, S = #state{listener = ListenSocket}) ->
     oni_sockserv_sup:start_socket(),
     oni_event:connected(AcceptSocket),
     oni:notify(AcceptSocket, oni_ansi:style(?MSG_CONNECT)),
-    {noreply, S#state{next = login}}.
+    {noreply, S#state{next = capabilities}}.
     
 handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
     %% Handle @quit early so we don't depend on too much matching state.
     {stop, normal, S};
-handle_info({tcp, Socket, Data}, S = #state{next = login}) ->
+handle_info({tcp, Socket, Data}, S = #state{next = capabilities}) ->
+    %% TODO: Parse capability info here, for now just echo.
+    oni:notify(Socket, "~p", [Data]),
+    {noreply, S#state{next = login}};
+handle_info({tcp, Socket, Data}, S = #state{next = login}) 
+        when is_binary(Data) ->
     Cmd = oni_cmd:parse(Data, nothing),
     case oni:do_login(Socket, oni_cmd:verbstr(Cmd), oni_cmd:args(Cmd)) of
         nothing -> {noreply, S};
         Player -> 
             oni_who:insert_connection(Player, Socket),
-            oni_aq:start_queue(Player),
             oni_event:player_connected(Socket, Player),
+            oni_aq:start(Player),
             {noreply, S#state{next = connected, player = Player}}
     end;
-handle_info({tcp, Socket, <<"@reset", _/binary>>}, 
+handle_info({tcp, _Socket, <<"@reset", _/binary>>}, 
              S = #state{next = connected, player = Player}) ->
-    case oni_db:is_wizard(Player) of
-        true ->
-            oni:notify(Socket, <<"Environment reset.">>),
-            {noreply, S#state{bindings = []}};
-        false ->
-            oni:notify(Socket, ?INVALID_CMD),
-            {noreply, S}
-    end;
-handle_info({tcp, Socket, <<";", Data/binary>>},
+    NewBindings = handle_reset(Player, S#state.bindings),
+    {noreply, S#state{bindings = NewBindings}};
+handle_info({tcp, _Socket, <<";", Data/binary>>},
              S = #state{next = connected, player = Player, 
                         bindings = Bindings}) ->
-    case oni_db:is_wizard(Player) of
-        true -> 
-            {Str, NewBindings} = oni:eval_to_str(Data, Bindings),
-            oni:notify(Socket, Str),
-            {noreply, S#state{bindings = NewBindings}};
-        false -> 
-            oni:notify(Socket, ?INVALID_CMD),
-            {noreply, S}
-    end;
+    NewBindings = handle_eval(Player, Data, Bindings),
+    {noreply, S#state{bindings = NewBindings}};
 handle_info({tcp, _Socket, <<"say ", Data/binary>>},
              S = #state{next = connected, player = Player}) ->
     oni:say(Player, oni_bstr:trim(Data)),
@@ -126,17 +118,16 @@ handle_info({tcp, Socket, Data},
              S = #state{next = connected, player = Player}) ->
     Command = oni_cmd:parse(Data, Player),
     case oni_pack:cmd(Command, Player) of
-        {error, Command} ->
-            oni:notify(Socket, "[huh?] ~p", [Command]);
-        Pack ->
-            oni_rt_serv:exec(Pack)
+        {error, Command} -> 
+            handle_pack_error(Socket, Command);
+        Pack -> 
+            oni_aq:queue(Player, Pack)
     end,
     {noreply, S};
 handle_info({tcp_closed, Socket}, 
              S = #state{next = connected, player = Player}) ->
-    %% oni_aq:delete_queue(Player),
     oni_who:delete_connection(Player),
-    oni_event:disconnected(Socket),
+    oni_event:player_disconnected(Socket, Player),
     {stop, normal, S};
 handle_info({tcp_closed, Socket}, S) ->
     oni_event:disconnected(Socket),
@@ -147,3 +138,34 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%%%============================================================================    
+%%% Internal functions
+%%%============================================================================
+
+handle_pack_error(Socket, Command) ->
+    case oni_cmd:verbstr(Command) of
+        <<>>    -> inet:setopts(Socket, [{active, once}, {mode, binary}]);
+        _Else   -> oni:notify(Socket, "[huh?] ~p", [Command])
+    end.
+
+handle_eval(Player, Data, Bindings) ->
+    case oni_db:is_wizard(Player) of
+        true -> 
+            {Str, NewBindings} = oni:eval_to_str(Data, Bindings),
+            oni:notify(Player, Str),
+            NewBindings;
+        false -> 
+            oni:notify(Player, ?INVALID_CMD),
+            Bindings
+    end.
+
+handle_reset(Player, Bindings) ->
+    case oni_db:is_wizard(Player) of
+        true -> 
+            oni:notify(Player, <<"Environment reset.">>), 
+            [];
+        false -> 
+            oni:notify(Player, ?INVALID_CMD), 
+            Bindings
+    end.

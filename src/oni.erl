@@ -96,6 +96,7 @@ emote(User, Data) ->
 notify(Target, Str) ->
     notify(Target, Str, []).
 
+
 %% @doc Send a format message to specified socket.
 notify(Target, Str, Args) when is_integer(Target) -> 
     case oni_who:get_connection(Target) of

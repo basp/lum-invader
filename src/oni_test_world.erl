@@ -53,7 +53,10 @@ create() ->
     true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, look}),
 
     true = oni_db:add_verb(Mistress, {Wizard, [<<"l*ook">>]}, {any, none, none}),
-    true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, look_object}).
+    true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, look_object}),
+
+    true = oni_db:add_verb(Mistress, {Wizard, [<<"foo">>]}, {none, none, none}),
+    true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, start_foo}).
 
 examine(Bindings) ->
     Player = proplists:get_value(player, Bindings),
@@ -100,8 +103,10 @@ format_room_description(Id) ->
     <<"You are in ", Name/binary>>.
 
 start_foo(Bindings) ->
-    io:format("You start fooing.~n"),
+    Player = proplists:get_value(player, Bindings),
+    oni:notify(Player, <<"You start fooing.">>),
     {continue, 2000, {oni_test_world, finish_foo, [Bindings]}}.
 
-finish_foo(_Bindings) ->
-    io:format("You finish fooing.~n").
+finish_foo(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    oni:notify(Player, <<"You finish fooing.">>).

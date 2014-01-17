@@ -77,14 +77,14 @@ iobj(#parsed_cmd{iobj = Iobj})              -> Iobj.
 %% @doc Parses a user command.
 -spec parse(Data::binary(), User::oni_db:objid()) -> #parsed_cmd{}.
 parse(Data, nothing) ->
-    case parse_spec(Data) of
+    case parse_spec(oni_bstr:trim(Data)) of
         {Verb, _Dobjstr, Argstr, Args} ->
             #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args};
         {Verb, _Dobjstr, _Prepstr, _Iobjstr, Argstr, Args} ->
             #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args}
     end;
 parse(Data, User) ->
-    case parse_spec(Data) of
+    case parse_spec(oni_bstr:trim(Data)) of
         {Verb, Dobjstr, Argstr, Args} ->
             #parsed_cmd{verbstr = Verb, argstr = Argstr, args = Args,
                         dobjstr = Dobjstr, 

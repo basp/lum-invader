@@ -19,10 +19,14 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_queue/1]).
+-export([start_link/0, start_queue/1, get_queue/1]).
 
 %% supervisor callbacks
 -export([init/1]).
+
+-define(TABLE_AQS, oni_action_queues).
+
+-record(queue, {objid = nothing, queues = []}).
 
 %%%============================================================================    
 %%% API
@@ -32,13 +36,17 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 start_queue(Obj) ->
-    supervisor:start_child(?MODULE, [Obj]).
+    case ets:lookup(?TABLE_AQS, Obj) of
+    Pid = supervisor:start_child(?MODULE, [Obj]),
+    ets:insert(?TABLE_AQS, #queue{objid = Obj, queues = [Pid]}),
+    Pid.
 
 %%%============================================================================    
 %%% supervisor callbacks
 %%%============================================================================
 
 init(_Obj) ->
+    ets:new(?TABLE_AQS, [set, {keypos, #queue.objid}, named_table, public]).
     Strategy = {simple_one_for_one, 60, 3600},
     Spec = {aq, {oni_aq_serv, start_link, []},
             permanent, 1000, worker, [oni_aq_serv]},

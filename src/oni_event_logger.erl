@@ -53,7 +53,20 @@ handle_event({disconnected, Socket}, State) ->
     error_logger:info_msg("~p disconnected~n", [Socket]),
     {ok, State};
 handle_event({player_connected, Socket, Player}, State) ->
-    error_logger:info_msg("Player ~p connected on ~p~n", [Player, Socket]),
+    Name = oni_db:name(Player),
+    error_logger:info_msg("Player #~p (~p) connected on ~p~n", [Player, Name, Socket]),
+    {ok, State};
+handle_event({player_disconnected, Socket, Player}, State) ->
+    Name = oni_db:name(Player),
+    error_logger:info_msg("Player #~p (~p) disconnected from ~p~n", [Player, Name, Socket]),
+    {ok, State};
+handle_event({action_queue_started, Obj}, State) ->
+    Name = oni_db:name(Obj),
+    error_logger:info_msg("Started action queue for object #~p (~p)~n", [Obj, Name]),
+    {ok, State};
+handle_event({action_queue_stopped, Obj}, State) ->
+    Name = oni_db:name(Obj),
+    error_logger:info_msg("Stopped action queue for object #~p (~p)~n", [Obj, Name]),
     {ok, State}.
 
 handle_call(_Request, State) ->

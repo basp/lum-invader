@@ -29,10 +29,10 @@
 %% Initializes the object db and the "who" table and then starts the application.
 %% @end
 start(_Args, _Type) ->
-    oni_db:init(),          %% Initialize ETS tables
-    oni_who:init(),         %% 2
-    oni_aq:init(),          %% 1
-    oni_sup:start_link().   %% Go!
+    oni_db:init(),          
+    oni_who:init(),         
+    oni_aq:init(),          
+    oni_sup:start_link().
 
 %% @doc Callback for application behaviour. 
 %% Stops the application.

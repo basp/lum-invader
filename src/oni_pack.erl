@@ -48,20 +48,7 @@ cmd(Cmd, User) ->
     Args = {Dobj, Prepstr, Iobj},
     case lookup_verb(Verbstr, Objects, Args) of
         none ->
-            %% We might wanna look for an "huh" override on 
-            %% the player or location.
-            Bindings = [{player,    User},
-                        {this,      nothing},
-                        {caller,    User},
-                        {verb,      Verbstr},
-                        {argstr,    oni_cmd:argstr(Cmd)},
-                        {args,      oni_cmd:args(Cmd)},
-                        {dobjstr,   oni_cmd:dobjstr(Cmd)},
-                        {dobj,      Dobj},
-                        {prepstr,   Prepstr},
-                        {iobjstr,   oni_cmd:iobjstr(Cmd)},
-                        {iobj,      Iobj}],
-            #package{code = {oni, huh}, bindings = Bindings};
+            {error, Cmd};
         {This, Code} ->
             Bindings = [{player,    User},
                         {this,      This},
