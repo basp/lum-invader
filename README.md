@@ -12,8 +12,19 @@ There are a few OTP modules in Oni:
 *   `oni_rt_serv` is the main Oni runtime. We need to execute a lot synchronously (in order) to alleviate the need to sync everything in each individual verb. This server component will execute all verb commands from all users in order. Of course this also means it will be a big bottleneck.
 *   `oni_sup` is the main supervisor.
 *   `oni_app` is the appplication that ties everything together.
+*   `oni_event` is the event module with a basic listener in the form of `oni_event_logger`.
 
-There is also a bit of event structure
+Apart from all the OTP stuff, there's also a lot of utility and support modules:
+*   `oni_db` is quite a big module that handles all object manipulations. It is used to create objects, move them around, add and set properties and verbs and also permission flags.
+*   `oni_cmd` is used to do raw command parsing on incoming user request data.
+*   `oni_pack` is used to package up a parsed command into something that can be evaluated by the runtime. This basically means that the verb is resolved to code and that all the arguments are resolved to object references.
+*   `oni_match` contains some utility methods to do matching on various kinds of things in the runtime.
+*   `oni_bstr` has routines to deal with binaries. A lot of string handling in Oni is done in the form of binaries and this module supplies some helpers.
+*   `oni_ansi` has ANSI color code support to apply styles and also to strip them.
+*   `oni_who` is a module that can be used to find information (active) players.
+*   `oni` has some core functions that are useful to most of the other modules.
+
+There might be some other random stuff like `oni_test_world` that has some code to setup a basic world implementation to test out various things but the above is mostly it.
 
 #### Installing
 Oni (lum invader) is a standard OTP application, you can unzip, compile everything from `src` to `ebin` with 'erlc -o ebin ./src/*.erl` and that's basically it.
