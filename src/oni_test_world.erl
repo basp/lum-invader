@@ -105,8 +105,7 @@ format_room_description(Id) ->
 foo(Bindings) ->
     Player = proplists:get_value(player, Bindings),
     Pack = oni_pack:create({oni_test_world, start_foo}, Bindings),
-    oni_aq_sup:queue(Player, Pack),
-    ok.
+    oni_aq_sup:queue(Player, Pack).
 
 start_foo(Bindings) ->
     Player = proplists:get_value(player, Bindings),

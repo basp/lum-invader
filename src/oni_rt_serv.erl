@@ -23,7 +23,7 @@
 -record(state, {}).
 
 %% API
--export([start_link/0, exec/1, exec/3]).
+-export([start_link/0, exec/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -41,9 +41,6 @@ start_link() ->
 exec(Pack) ->
     gen_server:call(?SERVER, {exec, Pack}).
 
-exec(M, F, A) ->
-    gen_server:call(?SERVER, {exec, M, F, A}).
-
 %%%============================================================================    
 %%% gen_server callbacks
 %%%============================================================================
@@ -55,9 +52,6 @@ handle_call({exec, Pack}, _From, State) ->
     Bindings = oni_pack:bindings(Pack),
     {M, F} = oni_pack:code(Pack),
     R = M:F(Bindings),
-    {reply, R, State};
-handle_call({exec, M, F, A}, _From, State) ->
-    R = apply(M, F, A),
     {reply, R, State}.
 
 handle_cast(_Request, State) ->
