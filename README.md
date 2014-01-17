@@ -21,6 +21,7 @@ Apart from all the OTP stuff, there's also a lot of utility and support modules:
 *   `oni_match` contains some utility methods to do matching on various kinds of things in the runtime.
 *   `oni_bstr` has routines to deal with binaries. A lot of string handling in Oni is done in the form of binaries and this module supplies some helpers.
 *   `oni_ansi` has ANSI color code support to apply styles and also to strip them.
+*   `oni_gender` has basic utilities to set gender. This is a requirement to make sure of the `ps` (pronoun substitution function) in the `oni_bstr` module.
 *   `oni_who` is a module that can be used to find information (active) players.
 *   `oni` has some core functions that are useful to most of the other modules.
 
@@ -206,7 +207,7 @@ And then add the verb and verb code to the `Wiz` object:
 
 Note that the newly added verb has index `1` in the verb list. This makes it easy to setup verbs in script as you can be sure that the last added verb is the first one in the list. 
 
-You can now execute the `survey` command from your telnet shell. Let's see what we can doo with it:
+You can now execute the `survey` command from your telnet shell. Let's see what we can do with it:
 
     survey
     You start surveying your surroundings.
