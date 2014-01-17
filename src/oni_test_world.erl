@@ -49,14 +49,14 @@ create() ->
     true = oni_db:add_verb(Wizard, {Wizard, [<<"@ex*amine">>]}, {any, none, none}),
     true = oni_db:set_verb_code(Wizard, 1, {oni_test_world, examine_object}),
 
-    true = oni_db:add_verb(Mistress, {Wizard, [<<"l*ook">>]}, {none, none, none}),
-    true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, look}),
+    true = oni_db:add_verb(Wizard, {Wizard, [<<"l*ook">>]}, {none, none, none}),
+    true = oni_db:set_verb_code(Wizard, 1, {oni_test_world, look}),
 
-    true = oni_db:add_verb(Mistress, {Wizard, [<<"l*ook">>]}, {any, none, none}),
-    true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, look_object}),
+    true = oni_db:add_verb(Wizard, {Wizard, [<<"l*ook">>]}, {any, none, none}),
+    true = oni_db:set_verb_code(Wizard, 1, {oni_test_world, look_object}),
 
-    true = oni_db:add_verb(Mistress, {Wizard, [<<"foo">>]}, {none, none, none}),
-    true = oni_db:set_verb_code(Mistress, 1, {oni_test_world, start_foo}).
+    true = oni_db:add_verb(Wizard, {Wizard, [<<"foo">>]}, {none, none, none}),
+    true = oni_db:set_verb_code(Wizard, 1, {oni_test_world, foo}).
 
 examine(Bindings) ->
     Player = proplists:get_value(player, Bindings),
@@ -101,6 +101,12 @@ look_self(Self, Bindings) ->
 format_room_description(Id) ->
     Name = oni_db:name(Id),
     <<"You are in ", Name/binary>>.
+
+foo(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    Pack = oni_pack:create({oni_test_world, start_foo}, Bindings),
+    oni_aq_sup:queue(Player, Pack),
+    ok.
 
 start_foo(Bindings) ->
     Player = proplists:get_value(player, Bindings),

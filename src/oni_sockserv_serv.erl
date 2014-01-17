@@ -86,7 +86,10 @@ handle_info({tcp, Socket, Data}, S = #state{next = login})
         Player -> 
             oni_who:insert_connection(Player, Socket),
             oni_event:player_connected(Socket, Player),
-            oni_aq_sup:start_queue(Player),
+            case oni_aq_sup:start_queue(Player) of
+                {already_started, Pid} -> oni_aq_serv:next(Pid);
+                _ -> ok
+            end,
             {noreply, S#state{next = connected, player = Player}}
     end;
 handle_info({tcp, _Socket, <<"@reset", _/binary>>}, 
@@ -121,7 +124,8 @@ handle_info({tcp, Socket, Data},
         {error, Command} -> 
             handle_pack_error(Socket, Command);
         Pack -> 
-            oni_aq_sup:queue(Player, Pack)
+            %% oni_aq_sup:queue(Player, Pack)
+            oni_rt_serv:exec(Pack)
     end,
     {noreply, S};
 handle_info({tcp_closed, Socket}, 

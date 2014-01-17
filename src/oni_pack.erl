@@ -17,7 +17,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni_pack).
 
--export([cmd/2, code/1, bindings/1]).
+-export([cmd/2, code/1, bindings/1, create/2]).
 
 -record(package, {code = none, bindings = []}).
 
@@ -30,6 +30,9 @@ code(#package{code = Code}) -> Code.
 
 %% @doc Get bindings from package.
 bindings(#package{bindings = Bindings}) -> Bindings.
+
+create(Code, Bindings) ->
+    #package{code = Code, bindings = Bindings}.
 
 %% @doc Package up a parsed command into something that can
 %% be sent to the runtime.

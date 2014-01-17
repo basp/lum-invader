@@ -21,13 +21,13 @@
 -record(state, {objid, queue}).
 
 %% API
--export([start_link/1, queue/4, queue/2, next/1, clear/1]).
+-export([start_link/1, queue/4, queue/2, next/1, clear/1, queued/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--define(MAX_QUEUE, 2).
+-define(MAX_QUEUE, 25).
 
 %%%============================================================================
 %%% API
@@ -52,6 +52,9 @@ queue(Pid, Module, Function, Args) ->
     queued | ok.
 queue(Pid, MFA) ->
     gen_server:call(Pid, {queue, MFA}).
+
+queued(Pid) ->
+    gen_server:call(Pid, queued).
 
 %% @doc Clears the queue.
 -spec clear(Pid::pid()) -> ok.
@@ -82,11 +85,13 @@ handle_call({queue, MFA}, _From, S = #state{queue = Queue}) ->
             {reply, ok, S#state{queue = NewQueue}};
         Len when Len >= ?MAX_QUEUE -> 
             %% Max queue size reached, just drop the action.
-            {reply, full, S#state{queue = Queue}};
+            {reply, {full, ?MAX_QUEUE}, S#state{queue = Queue}};
         _ -> 
             %% Queue the action.
             {reply, queued, S#state{queue = NewQueue}}
-    end.
+    end;
+handle_call(queued, _From, S = #state{queue = Queue}) ->
+    {reply, Queue, S}.
 
 handle_cast(clear, S) ->
     {noreply, S#state{queue = queue:new()}};

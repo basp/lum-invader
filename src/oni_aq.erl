@@ -18,7 +18,7 @@
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%% @end
 %%%-----------------------------------------------------------------------------
-module(oni_aq).
+-module(oni_aq).
 
 -export([init/0, lookup/1, insert/2]).
 

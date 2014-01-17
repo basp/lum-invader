@@ -19,7 +19,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_queue/1, queue/2, queue/4, clear/1]).
+-export([start_link/0, start_queue/1, queue/2, clear/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -51,20 +51,15 @@ queue(Obj, Pack) ->
     Verb = proplists:get_value(verb, Bindings),
     case queue(Obj, M, F, [Bindings]) of
         queued -> oni:notify(Player, "[ queued - '~s' ]", [Verb]);
-        full -> oni:notify(Player, "[ max queue size reached ]", []);
+        {full, Max} -> oni:notify(Player, "[ cannot queue -- ~p actions already ]", [Max]);
         _ -> ok       
     end.
 
-queue(Obj, M, F, A) ->
-    case oni_aq:lookup(Obj) of
-        [] -> 'E_INVARG';
-        [Pid] -> oni_aq_serv:queue(Pid, M, F, A)
-    end.
 %%%============================================================================    
 %%% supervisor callbacks
 %%%============================================================================
 
-init(_Obj) ->
+init([]) ->
     Strategy = {simple_one_for_one, 60, 3600},
     Spec = {aq, {oni_aq_serv, start_link, []},
             permanent, 1000, worker, [oni_aq_serv]},
@@ -73,3 +68,9 @@ init(_Obj) ->
 %%%============================================================================    
 %%% Internal functions
 %%%============================================================================
+
+queue(Obj, M, F, A) ->
+    case oni_aq:lookup(Obj) of
+        [] -> 'E_INVARG';
+        [Pid] -> oni_aq_serv:queue(Pid, M, F, A)
+    end.
