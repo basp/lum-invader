@@ -219,3 +219,49 @@ You can now execute the `survey` command from your telnet shell. Let's see what 
     You finish surveying your surroundings.
 
 In the above you can see that while surveying, we can still look around. However, if we try to `survey` while we are already surveying you will see that the action is queued. When we initial survey finishes the next action from the queue is picked up and so on until we eventually run out of actions to execute.
+
+We could implement a more fancy action by having a `continue` stage. First change the `start_survey` function to look like this:
+
+    start_survey(Bindings) ->
+        Player = proplists:get_value(player, Bindings),
+        oni:notify(Player, "You start surveying your surroundings."),
+        {continue, 3000, {sandbox, continue_survey, [Bindings]}}.
+
+We only changed the continuation tuple to specify `continue_survey` instead of `finish_survey`. We have to implement the `continue_survey` function though:
+
+    continue_survey(Bindings) ->
+        case random:uniform() > 0.555 of
+            true ->
+                Player = proplists:get_value(player, Bindings),
+                oni:notify(Player, "You find some interesting terrain."),
+                {continue, 5000, {sandbox, continue_survey, [Bindings]}};
+            false ->
+                {continue, 1000, {sandbox, finish_survey, [Bindings]}}
+        end.
+
+With this extra part there is a slight chance of finding _interesting terrain_ which slows down the survey. If we don't find anything interesting we just look around for a little bit and then finish.
+
+Now if you execute this from the shell, every once in a while you will see this:
+
+    survey
+    You start surveying your surroundings.
+    You find some interesting terrain.
+    You finish surveying your surroundings.
+
+That spices up our action a little bit. Not that our actions are very _light-weight_ on processor time. We get some stuff from bindings, notify the player and then return with a `continue` tuple or any other result to signal done. Your outside actions should be very thin. If there is any heavy lifting involved you should consider implementing it as a seperate module or maybe even a `port`. That being said, _just Erlang_ should be fast enough for MOO purposes. 
+
+#### Performance and Storage
+Oni as of yet is not designed to run on multiple nodes. This is unfortunate but a typical MOO server does not really need the capacity of a distributed computing platform (unless you get really popular and in that case at least you are in Erlang already so it's not that bad). Eventually it would be nice to have a distributed Oni but this is not a high priority.
+
+This means we have to consider performance of critical components in the __game loop__ (Oni doesn't really have a game loop as such but the `oni_rt_serv` comes close). One of the interesting things is that we can do all command processing outside of the game loop so each player has a seperate process that listens to the socket, parses commands and resolves them into packages. These things can all be done outside of the main `oni_rt_serv` processs.
+
+The whole Oni database resides in memory as ETS tables and everything that needs to be persisted (or shared) in any way is in those tables. The tables are easily recognizable in `tv` as they are prefixed by `oni_`. Currently, there are four tables that Oni uses:
+
+*   `oni_action_queues` stores the relation between `player` object ids and `oni_aq_serv` process identifiers. The API to this table is in the `oni_aq` module.
+*   `oni_connections` stores the relation of `player` objects and their connections. We want to be able to `notify` objects instead of raw sockets (which are fine in the runtime but not so much in verb implementations) and this table provides that association.
+*   `oni_counters` is a counter table that contains simple integers. For now it only holds the object id value that is used to give each object an unique id.
+*   `oni_objects` contains the main object database. This hold all the objects, their properties and their verb pointers.
+
+Because everything is in ETS tables stuff is extremely fast but also very volatile. If `oni_sup` goes you are probably doomed although most problems are fixable (with due effort). In the future we plan to supply backup functionaly to save and restore Oni state but for now we can use the available functions that Erlang supplies to deal with saving and restoring ETS tables. This is not a high priority yet though as Oni is not finished and the final database design might change (slim chance though).
+
+I can't even time parsing and packaging commands reasonably on this crappy laptop so that is quite fast. The runtime is sequential so its speed only depends on how clever you design your verbs. More guidelines on that are planned for the future as the engine is becoming more developed.

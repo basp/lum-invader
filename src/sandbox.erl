@@ -13,7 +13,17 @@ survey(Bindings) ->
 start_survey(Bindings) ->
     Player = proplists:get_value(player, Bindings),
     oni:notify(Player, <<"You start surveying your surroundings.">>),
-    {continue, 3000, {sandbox, finish_survey, [Bindings]}}.
+    {continue, 3000, {sandbox, continue_survey, [Bindings]}}.
+
+continue_survey(Bindings) ->
+    case random:uniform() > 0.555 of
+        true ->
+            Player = proplists:get_value(player, Bindings),
+            oni:notify(Player, "You find some interesting terrain."),
+            {continue, 5000, {sandbox, continue_survey, [Bindings]}};
+        false ->
+            {continue, 1000, {sandbox, finish_survey, [Bindings]}}
+    end.
 
 finish_survey(Bindings) ->
     Player = proplists:get_value(player, Bindings),
