@@ -154,7 +154,7 @@ All execution of verbs that are a direct consequence of parsing a player supplie
 
 So why have this bottleneck at all? Why not have players run their processes just as is - in individual processes? Well, the main thing has to do with object manipulation in Oni and the way on how we want users to implement verbs. If we got rid of the `oni_rt_serv` and just executed everything concurrently we have to make sure that each verb runs appropriate pieces of code inside a transaction thus placing the burden of writing conflict free code on the verb implementors.
 
-So Oni runs things in a sequence. All players type commands, these get parsed into something called a `cmdspec()` and then that command specification is resolved into something called a `package`. This `package` is then send to the `oni_rt_serv` process to be executed. At this point what happens depends mostly on how the verb is implemented. 
+So Oni runs things in a sequence. All players type commands, these get parsed into something called a `parsed_cmd` by the `oni_cmd` module and then that is resolved into something called a `package` by the `oni_pack` module. This `package` is then send to the `oni_rt_serv` process to be executed. At this point what happens depends mostly on how the verb is implemented. 
 
 ##### The Action Queue
 Basic verbs like `l*ook` should be instant. Looking around doesn't take much longer than half a second so in game it is reasonably modelled like an instant action. You could however, create for example a `survey` action that spans a number of seconds. While doing such actions, you still want the user to be able to do instant actions (like `look`).
