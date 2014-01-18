@@ -6,6 +6,6 @@
  / _ \ _(_/((_) 
 | (_) | ' \)) | 
  \___/|_||_||_| 
-                [lum invader] (c) TMG
+                $bold;$fg_cyan;[$fg_magenta;lum invader$fg_cyan;] $fg_white;(c) TMG$reset;
 
-There is only one tomorrow.
+There is $bold;only one $reset;tomorrow.
