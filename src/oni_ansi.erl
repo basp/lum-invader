@@ -57,9 +57,9 @@
 %%% API
 %%%============================================================================
 
-%% @doc Applies ANSI color sequences.
--spec style(Data::binary()) -> binary().
-style(Data) ->
+style(Data) when is_list(Data) ->
+	style(list_to_binary(Data));
+style(Data) when is_binary(Data) ->
 	style(Data, <<>>).
 
 %% @doc Strips all style info.
