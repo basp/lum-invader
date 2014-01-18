@@ -38,6 +38,9 @@
 start_link(Obj) ->
     {ok, Pid} = gen_server:start_link(?MODULE, Obj, []),
     oni_event:action_queue_started(Obj, Pid),
+    %% We should only arrive here via a call to oni_aq_sup which should take
+    %% care not too boot up too much `aq` servers. It seems to work fine for 
+    %% now but this might be where dragons roam.
     oni_aq:insert(Obj, Pid),
     {ok, Pid}.
 
