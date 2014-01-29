@@ -17,14 +17,7 @@
 %%%----------------------------------------------------------------------------
 -module(oni).
 
--export([test/0, 
-         do_login/3, 
-         start/0, stop/0, 
-         notify/2, notify/3, 
-         say/2, emote/2,
-         huh/1,
-         eval/2, eval_to_str/2,
-         debug/2]).
+-compile(export_all).
 
 -define(INVALID_LOGIN, <<"Invalid player or password">>).
 
@@ -57,6 +50,13 @@ stop() ->
 %%%============================================================================
 %%% Built-in communication
 %%%============================================================================
+
+announce(Location, Msg) ->
+    Contents = oni_db:contents(Location),
+    Pred = fun(X) -> oni_db:is_player(X) end,
+    Players = lists:filter(Pred, Contents),
+    Action = fun(X) -> oni:notify(X, Msg) end,
+    lists:foreach(Action, Players).
 
 %% @doc Builtin say verb, this is so frequently used we might 
 %% as well have it here.
