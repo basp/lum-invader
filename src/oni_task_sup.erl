@@ -17,8 +17,14 @@
 %%%----------------------------------------------------------------------------
 -module(oni_task_sup).
 
--export([start_link/0, start_task/2, start_task/4, spawn_task/2]).
+%% API
+-export([start_link/0, start_task/2, start_task/4]).
+
+%% supervisor callbacks
 -export([init/1]).
+
+%% Don't use -- internal.
+-export([spawn_task/2]).
 
 %%%============================================================================
 %%% API
