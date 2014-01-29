@@ -68,7 +68,6 @@ handle_cast(accept, S = #state{listener = ListenSocket}) ->
     {ok, AcceptSocket} = gen_tcp:accept(ListenSocket),
     oni_sockserv_sup:start_socket(),
     oni_event:connected(AcceptSocket),
-    %% oni:notify(AcceptSocket, oni_ansi:style(?MSG_CONNECT)),0
     {ok, MOTD} = file:read_file("MOTD"),
     oni:notify(AcceptSocket, oni_ansi:style(MOTD)),
     {noreply, S#state{next = capabilities}}.
@@ -77,8 +76,9 @@ handle_info({tcp, _Socket, <<"@quit", _/binary>>}, S) ->
     %% Handle @quit early so we don't depend on too much matching state.
     {stop, normal, S};
 handle_info({tcp, Socket, _Data}, S = #state{next = capabilities}) ->
+    %% TODO: 
     %% We should parse capability info right here but 
-    %% we'll just reset the socket for now.
+    %% we'll just reset the socket for now with notify.
     oni:notify(Socket, <<"Please login to an existing player.">>),
     {noreply, S#state{next = login}};
 handle_info({tcp, Socket, Data}, S = #state{next = login}) 
@@ -127,7 +127,6 @@ handle_info({tcp, Socket, Data},
         {error, Command} -> 
             handle_pack_error(Socket, Command);
         Pack -> 
-            %% oni_aq_sup:queue(Player, Pack)
             oni_rt_serv:exec(Pack)
     end,
     {noreply, S};

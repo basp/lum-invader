@@ -28,9 +28,9 @@
 
 -define(INVALID_LOGIN, <<"Invalid player or password">>).
 
-%% @doc Runs basic sanity checks.
-test() ->
-    eunit:test([oni_ansi, oni_bstr, oni_cmd, oni_match]).
+%%%============================================================================
+%%% Login handler
+%%%============================================================================
 
 %% @doc Default login handler
 do_login(Socket, <<"connect">>, [Name|_]) ->
@@ -42,10 +42,9 @@ do_login(Socket, _Command, _Args) ->
     notify(Socket, ?INVALID_LOGIN),
     nothing.
 
-%% @doc Last ditch effort for unknown commands.
-huh(Bindings) ->
-    Player = proplists:get_value(player, Bindings),
-    notify(Player, <<"That doesn't seem like an option.">>).
+%%%============================================================================
+%%% Application control
+%%%============================================================================
 
 %% @doc Starts the application.
 start() ->
@@ -55,13 +54,9 @@ start() ->
 stop() ->
     application:stop(oni).
 
-%% @doc Sends styled debug output.
-debug(Player, Args) ->
-    Rest = list_to_binary(io_lib:format("~p", [Args])),
-    Msg = <<"$bold;$fg_yellow;[$fg_green;debug$fg_yellow;]$reset; ", Rest/binary>>,
-    oni:notify(Player, oni_ansi:style(Msg)).
-    %%Prefix = ,
-    %%oni:notify(Player, <<Prefix/binary, Msg/binary>>).
+%%%============================================================================
+%%% Built-in communication
+%%%============================================================================
 
 %% @doc Builtin say verb, this is so frequently used we might 
 %% as well have it here.
@@ -106,6 +101,10 @@ notify(Socket, Str, Args) ->
     ok = gen_tcp:send(Socket, [io_lib:format(Str, Args), <<$\r, $\n>>]),
     ok = inet:setopts(Socket, [{active, once}, {mode, binary}]).
 
+%%%============================================================================
+%%% Code evaluation
+%%%============================================================================
+
 %% @doc Evaluates Erlang code to a string.
 eval_to_str(Str, Bindings) ->
     try eval(Str, Bindings) of 
@@ -125,6 +124,18 @@ eval(Str, Bindings) ->
     {ok, Tokens, _} = erl_scan:string(Str),
     {ok, ExprList} = erl_parse:parse_exprs(Tokens),
     erl_eval:expr_list(ExprList, Bindings).
+
+%%%============================================================================
+%%% Testing
+%%%============================================================================
+
+%% @doc Runs basic sanity checks.
+test() ->
+    eunit:test([oni_ansi, oni_bstr, oni_cmd, oni_match]).
+
+%%%============================================================================
+%%% Internal functions
+%%%============================================================================
 
 %% @doc Helper for the login function.
 find_players(Name) ->
