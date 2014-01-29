@@ -1,0 +1,3 @@
+-module(actor).
+
+loop()
