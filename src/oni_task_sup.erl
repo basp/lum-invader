@@ -2,6 +2,19 @@
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Task supervisor.
 %%%
+%%% This is used by the `oni_aq_serv' to boot long running tasks. The 
+%%% supervisor is here mainly to keep track of those tasks so they don't
+%%% get lost in the ether. This module also is responsible for spawning
+%%% the actual process responsible for executing the task.
+%%%
+%%% Because of the waiting mechanics, we need a seperate process to do the
+%%% waiting for us. That process is started here in this module. The supervisor
+%%% implemented here keeps track of that process. This enables the action queue 
+%%% process to run and be able to still receive instructions. It also enables 
+%%% to inspect and manipulate any task processes that might not behave nicely
+%%% and provides a central point to deal with any problems that may arise because
+%%% of them.
+%%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
 %%% copyright notice and this permission notice appear in all copies.

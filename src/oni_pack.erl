@@ -2,6 +2,16 @@
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Operations to wrap up things into runtime packages.
 %%%
+%%% A package in this context is a pointer to an exported function
+%%% using a {Module, Function} tuple and a `binding list'. The binding 
+%%% list is a property list that has a few mandatory elements.
+%%% 
+%%% Runtime packages are mainly created internaly by the parsing and then
+%%% resolving the raw command input to object references. However, it's 
+%%% possible (and not uncommon) to create ad-hoc packages using the `create'
+%%% function. This is convenient if you want to call another verb from 
+%%% verb implemenation code.
+%%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
 %%% copyright notice and this permission notice appear in all copies.
@@ -31,6 +41,9 @@ code(#package{code = Code}) -> Code.
 %% @doc Get bindings from package.
 bindings(#package{bindings = Bindings}) -> Bindings.
 
+%% @doc Create an ad-hoc package.
+%% This is usually used to call other verbs from a verb implementation.
+%% @end
 create(Code, Bindings) ->
     #package{code = Code, bindings = Bindings}.
 
@@ -50,8 +63,7 @@ cmd(Cmd, User) ->
         [Iobj],     oni_db:parents(Iobj)]),
     Args = {Dobj, Prepstr, Iobj},
     case lookup_verb(Verbstr, Objects, Args) of
-        none ->
-            {error, Cmd};
+        none -> {error, Cmd};
         {This, Code} ->
             Bindings = [{player,    User},
                         {this,      This},
@@ -100,7 +112,7 @@ match_verb_name(Str, Obj, Args, [H|T], Index) ->
 %% Dobj and Iobj specs: none, any, this.
 %% Prep spec: none, any or one of the preps from the oni_cmd module
 match_verb_args(_This, {none, none, none}, {Dobj, Prep, Iobj})
-    when Dobj =:= nothing, Prep =:= <<>>, Iobj =:= nothing -> true;
+    when Dobj =:= nothing,  Prep =:= <<>>, Iobj =:= nothing -> true;
 match_verb_args(This, {this, any, this}, {Dobj, Prep, Iobj})
     when Dobj =:= This, Prep =/= <<>>, Iobj =:= This -> true;
 match_verb_args(This, {this, any, any}, {Dobj, Prep, Iobj})
