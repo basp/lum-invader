@@ -2,6 +2,9 @@
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Command parser.
 %%%
+%%% This module implements a LambdaMOO command parser. It tries to parse a
+%%% (user supplied) command input string into a command specification.
+%%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
 %%% copyright notice and this permission notice appear in all copies.
