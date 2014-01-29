@@ -84,7 +84,7 @@ handle_call({queue, MFA}, _From, S = #state{queue = Queue}) ->
     case queue:len(Queue) of
         0 -> 
             %% The initial queue was empty so start executing immediately.
-            execute(self(), MFA), 
+            oni_task_sup:start_task(self(), MFA), 
             {reply, ok, S#state{queue = NewQueue}};
         Len when Len >= ?MAX_QUEUE -> 
             %% Max queue size reached, just drop the action.
@@ -103,7 +103,6 @@ handle_cast(next, S = #state{queue = Queue}) ->
     case queue:peek(NewQueue) of
         {value, MFA} -> 
             oni_task_sup:start_task(self(), MFA);
-            %% execute(self(), MFA);
         empty -> ok
     end,
     {noreply, S#state{queue = NewQueue}}.
@@ -118,20 +117,3 @@ terminate(_Reason, #state{objid = Obj}) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-%%%============================================================================
-%%% Internal functions.
-%%%============================================================================
-
-execute(Pid, {Module, Function, Args}) ->
-    F = fun() -> 
-        R = oni_rt_serv:exec(Module, Function, Args),
-        case R of
-            {continue, Time, CMFA} -> 
-                timer:sleep(Time), 
-                execute(Pid, CMFA);
-            _Other -> 
-                next(Pid)
-        end
-    end,
-    spawn(F).
