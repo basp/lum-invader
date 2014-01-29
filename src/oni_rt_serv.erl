@@ -2,7 +2,9 @@
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
 %%% @doc Runtime server (sync verb execution).
 %%%
-%%% This is the API to manipulating objects and their properties.
+%%% Used internally for the execution queue. This is the main game loop,
+%%% everything that is executed as a result of user input goes through
+%%% this server.
 %%% 
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
