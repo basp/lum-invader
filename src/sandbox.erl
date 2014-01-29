@@ -1,6 +1,21 @@
 -module(sandbox).
 -compile(export_all).
 
+init() ->
+    Player = oni_db:create(nothing),
+    oni_db:add_verb(Player, {Player, [<<"l*ook">>]}, {none, none, none}),
+    oni_db:set_verb_code(Player, 1, {sandbox, look}),
+    oni_db:add_verb(Player, {Player, [<<"surv*ey">>]}, {none, none, none}),
+    oni_db:set_verb_code(Player, 1, {sandbox, survey}),
+    Wizard = oni_db:create(Player),
+    oni_db:rename(Wizard, <<"Wizard">>),
+    oni_db:set_player_flag(Wizard, true),
+    oni_db:set_wizard_flag(Wizard, true),
+    Mistress = oni_db:create(Player),
+    oni_db:rename(Mistress, <<"Mistress">>),
+    oni_db:set_player_flag(Mistress, true),
+    oni_db:set_wizard_flag(Mistress, true).
+
 look(Bindings) ->
     Player = proplists:get_value(player, Bindings),
     oni:notify(Player, "You look around.").

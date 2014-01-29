@@ -101,7 +101,9 @@ handle_cast(clear, S) ->
 handle_cast(next, S = #state{queue = Queue}) ->
     {_, NewQueue} = queue:out(Queue),
     case queue:peek(NewQueue) of
-        {value, MFA} -> execute(self(), MFA);
+        {value, MFA} -> 
+            oni_task_sup:start_task(self(), MFA);
+            %% execute(self(), MFA);
         empty -> ok
     end,
     {noreply, S#state{queue = NewQueue}}.

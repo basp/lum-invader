@@ -31,14 +31,16 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 init([]) ->
-    SockservSup = {oni_sockserv_sup, {oni_sockserv_sup, start_link, []},
-                   permanent, 2000, supervisor, [oni_sockserv_serv]},
-    EventManager = {oni_event, {oni_event, start_link, []},
+    SockservSup   = {oni_sockserv_sup, {oni_sockserv_sup, start_link, []},
+                    permanent, 2000, supervisor, [oni_sockserv_serv]},
+    EventManager  = {oni_event, {oni_event, start_link, []},
                     permanent, 2000, worker, [oni_event]},
-    RtServ = {oni_rt_serv, {oni_rt_serv, start_link, []},
-          permanent, 2000, worker, [oni_rt_serv]},
-    AqSup = {oni_aq_sup, {oni_aq_sup, start_link, []},
-             permanent, 2000, supervisor, [oni_aq_sup]},
-    Children = [SockservSup, EventManager, RtServ, AqSup],
+    RtServ        = {oni_rt_serv, {oni_rt_serv, start_link, []},
+                    permanent, 2000, worker, [oni_rt_serv]},
+    AqSup         = {oni_aq_sup, {oni_aq_sup, start_link, []},
+                    permanent, 2000, supervisor, [oni_aq_sup]},
+    TaskSup       = {oni_task_sup, {oni_task_sup, start_link, []},
+                    permanent, 2000, supervisor, [oni_task_sup]},
+    Children = [SockservSup, EventManager, RtServ, AqSup, TaskSup],
     RestartStrategy = {one_for_one, 4, 3600},
     {ok, {RestartStrategy, Children}}.
