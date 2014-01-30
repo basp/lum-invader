@@ -53,7 +53,6 @@ stop() ->
 
 announce(Location, Msg) ->
     Contents = oni_db:contents(Location),
-    io:format("announce, loc: ~p, msg: ~p, contents: ~p~n", [Location, Msg, Contents]),
     Pred = fun(X) -> oni_db:is_player(X) end,
     Players = lists:filter(Pred, Contents),
     Action = fun(X) -> oni:notify(X, Msg) end,
@@ -101,7 +100,7 @@ notify(Target, Str, Args) when is_integer(Target) ->
 notify(Socket, Str, Args) ->
     ok = gen_tcp:send(Socket, [io_lib:format(Str, Args), <<$\r, $\n>>]),
     ok = inet:setopts(Socket, [{active, once}, {mode, binary}]).
-
+    
 %%%============================================================================
 %%% Code evaluation
 %%%============================================================================

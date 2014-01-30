@@ -21,7 +21,8 @@
          add_handler/2, delete_handler/2, 
          connected/1, disconnected/1, 
          player_connected/2, player_disconnected/2,
-         action_queue_started/2, action_queue_stopped/2]).
+         action_queue_started/2, action_queue_stopped/2,
+         runtime_pack_exec/1, runtime_mfa_exec/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -57,3 +58,9 @@ action_queue_started(Obj, Pid) ->
 
 action_queue_stopped(Obj, Pid) ->
     gen_event:notify(?SERVER, {action_queue_stopped, Obj, Pid}).
+
+runtime_pack_exec(Pack) ->
+    gen_event:notify(?SERVER, {runtime_pack_exec, Pack}).
+
+runtime_mfa_exec(MFA) ->
+    gen_event:notify(?SERVER, {runtime_mfa_exec, MFA}).

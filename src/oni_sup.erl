@@ -41,6 +41,8 @@ init([]) ->
                     permanent, 2000, supervisor, [oni_aq_sup]},
     TaskSup       = {oni_task_sup, {oni_task_sup, start_link, []},
                     permanent, 2000, supervisor, [oni_task_sup]},
-    Children = [SockservSup, EventManager, RtServ, AqSup, TaskSup],
+    ActorSup      = {oni_actor_sup, {oni_actor_sup, start_link, []},
+                    permanent, 2000, supervisor, [oni_actor_sup]},
+    Children = [SockservSup, EventManager, RtServ, AqSup, TaskSup, ActorSup],
     RestartStrategy = {one_for_one, 4, 3600},
     {ok, {RestartStrategy, Children}}.

@@ -52,13 +52,21 @@ ps(Data, Who) ->
     ps(Data, Who, <<>>).
 
 %% @doc Checks whether a binary starts with a particular prefix.
+%% Note that this ignores casing.
+%% @end
 -spec starts_with(Prefix::binary(), Data::binary()) -> boolean().
 starts_with(<<>>, _) ->
 	true;
 starts_with(_, <<>>) ->
 	false;
+starts_with(<<X, RestX/binary>>, <<Y, RestY/binary>>)
+    when X >= $A, X =< $Z, Y >= $a, Y =< $z, (X + 32) =:= Y ->
+    starts_with(RestX, RestY); 
+starts_with(<<X, RestX/binary>>, <<Y, RestY/binary>>)
+    when X >= $a, X =< $z, Y >= $A, Y =< $Z, X =:= (Y + 32) ->
+    starts_with(RestX, RestY);
 starts_with(<<X, _/binary>>, <<Y, _/binary>>)
-	when X =/= Y -> false;
+    when X =/= Y -> false;
 starts_with(<<_, RestX/binary>>, <<_, RestY/binary>>) ->
 	starts_with(RestX, RestY).
 

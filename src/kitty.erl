@@ -48,7 +48,24 @@ init() ->
 
     connect_rooms(Room1, Room2, fun(ThisSide, OtherSide) ->
             oni_db:rename(ThisSide, <<"east">>),
-            oni_db:rename(OtherSide, <<"west">>)
+
+            oni_db:add_property(ThisSide, oleave_msg, <<"%n walks to the east.">>),
+            oni_db:add_verb(ThisSide, {Mistress, [<<"oleave_msg">>]}, {this, none, this}),
+            oni_db:set_verb_code(ThisSide, 1, {kitty, exit_oleave}),
+
+            oni_db:add_property(ThisSide, oarrive_msg, <<"%n arrives from the east.">>),
+            oni_db:add_verb(ThisSide, {Mistress, [<<"oarrive_msg">>]}, {this, none, this}),
+            oni_db:set_verb_code(ThisSide, 1, {kitty, exit_oarrive}),
+
+            oni_db:rename(OtherSide, <<"west">>),
+
+            oni_db:add_property(OtherSide, oleave_msg, <<"%n walks to the west.">>),
+            oni_db:add_verb(OtherSide, {Mistress, [<<"oleave_msg">>]}, {this, none, this}),
+            oni_db:set_verb_code(OtherSide, 1, {kitty, exit_oleave}),
+
+            oni_db:add_property(OtherSide, oarrive_msg, <<"%n arrives from the west.">>),
+            oni_db:add_verb(OtherSide, {Mistress, [<<"oarrive_msg">>]}, {this, none, this}),
+            oni_db:set_verb_code(OtherSide, 1, {kitty, exit_oarrive})
         end),
     
     oni_db:move(Mistress, Room1),
@@ -62,11 +79,18 @@ init() ->
     oni_db:set_verb_code(Player, 1, {kitty, go}),
 
     oni_db:add_verb(Alana, {Mistress, [<<"speak">>]}, {none, none, none}),
-    oni_db:set_verb_code(Alana, 1, {kitty, speak}).    
+    oni_db:set_verb_code(Alana, 1, {kitty, speak}),
+
+    oni_db:add_verb(Alana, {Mistress, [<<"pet">>]}, {this, none, none}),
+    oni_db:set_verb_code(Alana, 1, {kitty, pet}).
 
 %%%============================================================================
 %%% Actors
 %%%============================================================================
+
+%% @doc Actor loops should be started with the actor supervisor:
+%% oni_actor_sup:start_actor(4, {kitty, alana_loop}).
+%% @end
 alana_loop(Obj) ->
     %% Set player to 0 otherwise notify will fail
     Bindings = [{this, Obj}, {player, Obj}],
@@ -74,14 +98,11 @@ alana_loop(Obj) ->
     timer:sleep(25000),
     alana_loop(Obj).
 
-spawn_alana(Obj) ->
-    oni_aq_sup:start_queue(Obj),
-    spawn(fun() -> alana_loop(Obj) end).
-
-%% TODO: This just returns the first exit found
 random_exit(Room) ->
-    case oni_db:get_value(Room, exits) of
-        [Exit|_] -> Exit;
+    case Exits = oni_db:get_value(Room, exits) of
+        [_|_] ->
+            I = random:uniform(length(Exits)),
+            lists:nth(I, Exits);
         _ -> nothing
     end.
 
@@ -126,6 +147,10 @@ finish_gnawing(Bindings) ->
     This = proplists:get_value(this, Bindings),
     Location = oni_db:location(This),
     oni:announce(Location, <<"Alana finishes gnawing on his cable. He seems satisfied for now.">>).
+
+pet(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    oni:notify(Player, <<"Alana looks at you curiously.">>).
 
 %%%============================================================================
 %%% Player verbs

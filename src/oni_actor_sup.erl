@@ -18,10 +18,13 @@
 -module(oni_actor_sup).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, start_actor/2]).
 
 %% supervisor callbacks
 -export([init/1]).
+
+%% Internal
+-export([spawn_actor/2]).
 
 %%%============================================================================
 %%% API
@@ -30,16 +33,23 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+start_actor(Obj, {Module, Function}) ->
+    supervisor:start_child(?MODULE, [Obj, {Module, Function}]).
+
 %%%============================================================================
 %%% supervisor callbacks
 %%%============================================================================
 
 init([]) ->
     Strategy = {simple_one_for_one, 60, 3600},
-    Spec = {task, {?MODULE, spawn_task, []},
-                  temporary, 1000, worker, [oni_task_sup]},
+    Spec = {task, {?MODULE, spawn_actor, []},
+                  temporary, 1000, worker, [oni_actor_sup]},
     {ok, {Strategy, [Spec]}}.
 
 %%%============================================================================
 %%% Internal functions.
 %%%============================================================================
+
+spawn_actor(Obj, {Module, Function}) -> 
+    oni_aq_sup:start_queue(Obj),
+    {ok, spawn_link(Module, Function, [Obj])}.

@@ -54,11 +54,13 @@ init([]) ->
     {ok, #state{}}.
 
 handle_call({exec, Pack}, _From, State) ->
+    oni_event:runtime_pack_exec(Pack),
     Bindings = oni_pack:bindings(Pack),
     {M, F} = oni_pack:code(Pack),
     R = M:F(Bindings),
     {reply, R, State};
 handle_call({exec, M, F, A}, _From, State) ->
+    oni_event:runtime_mfa_exec({M, F, A}),
     R = apply(M, F, A),
     {reply, R, State}.
 

@@ -67,6 +67,12 @@ handle_event({action_queue_started, Obj, Pid}, State) ->
 handle_event({action_queue_stopped, Obj, Pid}, State) ->
     Name = oni_db:name(Obj),
     error_logger:info_msg("Stopped action queue ~p for object #~p (~p)~n", [Pid, Obj, Name]),
+    {ok, State};
+handle_event({runtime_pack_exec, Pack}, State) ->
+    error_logger:info_msg("Runtime pack execution: ~p~n", [Pack]),
+    {ok, State};
+handle_event({runtime_mfa_exec, MFA}, State) ->
+    error_logger:info_msg("Runtime MFA execution: ~p~n", [MFA]),
     {ok, State}.
 
 handle_call(_Request, State) ->
