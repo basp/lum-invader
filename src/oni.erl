@@ -53,6 +53,7 @@ stop() ->
 
 announce(Location, Msg) ->
     Contents = oni_db:contents(Location),
+    io:format("announce, loc: ~p, msg: ~p, contents: ~p~n", [Location, Msg, Contents]),
     Pred = fun(X) -> oni_db:is_player(X) end,
     Players = lists:filter(Pred, Contents),
     Action = fun(X) -> oni:notify(X, Msg) end,

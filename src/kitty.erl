@@ -46,14 +46,9 @@ init() ->
     oni_db:rename(Room2, <<"The Second Room">>),
     oni_db:add_property(Room2, exits, []),
 
-    create_exit(Room1, fun(Exit) ->
-            oni_db:rename(Exit, <<"east">>),
-            oni_db:add_property(Exit, other_side, Room2)
-        end),
-
-    create_exit(Room2, fun(Exit) ->
-            oni_db:rename(Exit, <<"west">>),
-            oni_db:add_property(Exit, other_side, Room1)
+    connect_rooms(Room1, Room2, fun(ThisSide, OtherSide) ->
+            oni_db:rename(ThisSide, <<"east">>),
+            oni_db:rename(OtherSide, <<"west">>)
         end),
     
     oni_db:move(Mistress, Room1),
@@ -74,8 +69,8 @@ init() ->
 %%%============================================================================
 alana_loop(Obj) ->
     %% Set player to 0 otherwise notify will fail
-    Bindings = [{this, Obj}, {player, 0}],
-    speak(Bindings),
+    Bindings = [{this, Obj}, {player, Obj}],
+    next_action(Bindings),
     timer:sleep(25000),
     alana_loop(Obj).
 
@@ -83,7 +78,14 @@ spawn_alana(Obj) ->
     oni_aq_sup:start_queue(Obj),
     spawn(fun() -> alana_loop(Obj) end).
 
-speak(Bindings) ->
+%% TODO: This just returns the first exit found
+random_exit(Room) ->
+    case oni_db:get_value(Room, exits) of
+        [Exit|_] -> Exit;
+        _ -> nothing
+    end.
+
+next_action(Bindings) ->
     This = proplists:get_value(this, Bindings),
     Location = oni_db:location(This),
     R = random:uniform(),
@@ -93,8 +95,14 @@ speak(Bindings) ->
         R when R > 0.600 ->
             oni:announce(Location, <<"Alana looks at you ponderingly.">>);
         R when R > 0.400 ->
-            %% do nothing for now
-            ok
+            case random_exit(Location) of
+                nothing -> ok;
+                Exit -> 
+                    io:format("Moving Alana to ~p~n", [Exit]),
+                    NewBindings = [{dobj, Exit}|Bindings],
+                    Pack = oni_pack:create({kitty, start_go}, NewBindings),
+                    oni_aq_sup:queue(This, Pack)
+            end;
         R when R > 0.200 ->
             Pack = oni_pack:create({kitty, start_gnawing}, Bindings),
             oni_aq_sup:queue(This, Pack);
@@ -120,7 +128,7 @@ finish_gnawing(Bindings) ->
     oni:announce(Location, <<"Alana finishes gnawing on his cable. He seems satisfied for now.">>).
 
 %%%============================================================================
-%%% Mistress verbs
+%%% Player verbs
 %%%============================================================================
 
 look(Bindings) ->
@@ -130,22 +138,68 @@ look(Bindings) ->
 
 go(Bindings) ->
     Player = proplists:get_value(player, Bindings),
-    Exit = proplists:get_value(dobj, Bindings),
-    case Exit of
-        Id when is_integer(Id) ->
-            OtherSide = oni_db:get_value(Id, other_side), 
-            oni_db:move(Player, OtherSide),
-            oni:notify(Player, "You go ~s", [oni_db:name(Exit)]);
-        _Else ->
-            oni:notify(Player, "You can't go that way.")
+    Pack = oni_pack:create({kitty, start_go}, Bindings),
+    oni_aq_sup:queue(Player, Pack).
+
+start_go(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    Dir = proplists:get_value(dobjstr, Bindings),
+    Location = oni_db:location(Player),
+    case find_exit(Location, Dir) of
+        {ambiguous, _} ->
+            oni:notify(Player, "I don't know which way '~s' you mean.", [Dir]);
+        failed ->
+            oni:notify(Player, "You can't go that way.");
+        {_, Name} ->
+            oni:notify(Player, "You go ~s", [Name]),
+            {continue, 1500, {kitty, finish_go, [Bindings]}}
+    end.
+
+finish_go(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    Dir = proplists:get_value(dobjstr, Bindings),
+    Location = oni_db:location(Player),
+    case find_exit(Location, Dir) of
+        {ambiguous, _} ->
+            oni:notify(Player, "You suddenly are confused about which way '~s' to go.", [Dir]);
+        failed ->
+            oni:notify(Player, "You can no longer go that way.");
+        {Id, _} ->
+            OtherSide = oni_db:get_value(Id, other_side),
+            OtherRoom = oni_db:location(OtherSide),
+            oni_db:move(Player, OtherRoom),
+            oni:notify(Player, oni_db:name(OtherRoom))            
     end.
 
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
-create_exit(From, Setup) ->
+
+-spec find_exit(oni_db:objid(), binary()) -> 
+    {oni_db:objid(), binary()} | failed | {ambiguous, [binary()]}.
+find_exit(Location, Name) ->
+    ExitNames = exit_names(Location),
+    oni_match:list(fun({_, X}) -> oni_bstr:starts_with(Name, X) end, ExitNames).
+
+exit_names(Room) ->
+    case oni_db:get_value(Room, exits) of
+        'E_PROPNF' -> [];
+        Exits -> exit_names(Exits, [])
+    end.
+
+exit_names([], Acc) -> lists:reverse(Acc);
+exit_names([H|T], Acc) -> exit_names(T, [{H, oni_db:name(H)}|Acc]).
+
+connect_rooms(From, To, SetupExits) ->
+    ThisSide = create_exit(From),
+    OtherSide = create_exit(To),
+    oni_db:add_property(ThisSide, other_side, OtherSide),
+    oni_db:add_property(OtherSide, other_side, ThisSide),
+    SetupExits(ThisSide, OtherSide).
+
+create_exit(Room) ->
     Exit = oni_db:create(nothing),
-    oni_db:move(Exit, From),
-    Rest = oni_db:get_value(From, exits),
-    oni_db:set_value(From, exits, [Exit|Rest]),
-    Setup(Exit).
+    oni_db:move(Exit, Room),
+    Rest = oni_db:get_value(Room, exits),
+    oni_db:set_value(Room, exits, [Exit|Rest]),
+    Exit.
