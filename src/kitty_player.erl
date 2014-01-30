@@ -41,7 +41,7 @@ create(Name, Owner) ->
 sys_exits(Bindings) ->
     Player = proplists:get_value(player, Bindings),
     Location = oni_db:location(Player),
-    oni:notify("~p", [exit_names(Location)]).
+    oni:notify(Player, "~p", [exit_names(Location)]).
 
 look(Bindings) ->
     Player = proplists:get_value(player, Bindings),
