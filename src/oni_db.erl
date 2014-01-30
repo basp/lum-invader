@@ -692,6 +692,10 @@ parents(Id, Acc) ->
 		[#object{parent = Parent}] -> parents(Parent, [Parent|Acc])
 	end.
 
+%% Verbs can have multiple names but show up as a single list
+%% in `verbs'. This will return a list that has equal length
+%% as the list returned by `verbs' where each integer is the actual
+%% verb index of the corresponding verb in `verbs'.
 -spec verb_indices(Verbs::[{verb_info(), verb_args(), verb_code()}]) -> 
 	[integer()].
 verb_indices(Verbs) ->

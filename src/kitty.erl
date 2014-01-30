@@ -22,6 +22,7 @@
 init() ->
     %% Player
     Player = oni_db:create(nothing),
+    oni_db:rename(Player, <<"generic player">>),
 
     %% Mistress
     Mistress = oni_db:create(Player),
@@ -37,15 +38,33 @@ init() ->
     Alana = oni_db:create(nothing),
     oni_db:rename(Alana, <<"Alana">>),
 
-    Room = oni_db:create(nothing),
-    oni_db:rename(Room, <<"The Void">>),
+    Room1 = oni_db:create(nothing),
+    oni_db:rename(Room1, <<"The First Room">>),
+    oni_db:add_property(Room1, exits, []),
 
-    oni_db:move(Mistress, Room),
-    oni_db:move(Wizard, Room),
-    oni_db:move(Alana, Room),
+    Room2 = oni_db:create(nothing),
+    oni_db:rename(Room2, <<"The Second Room">>),
+    oni_db:add_property(Room2, exits, []),
+
+    create_exit(Room1, fun(Exit) ->
+            oni_db:rename(Exit, <<"east">>),
+            oni_db:add_property(Exit, other_side, Room2)
+        end),
+
+    create_exit(Room2, fun(Exit) ->
+            oni_db:rename(Exit, <<"west">>),
+            oni_db:add_property(Exit, other_side, Room1)
+        end),
+    
+    oni_db:move(Mistress, Room1),
+    oni_db:move(Wizard, Room1),
+    oni_db:move(Alana, Room1),
 
     oni_db:add_verb(Player, {Mistress, [<<"l*ook>">>]}, {none, none, none}),
     oni_db:set_verb_code(Player, 1, {kitty, look}),
+
+    oni_db:add_verb(Player, {Mistress, [<<"go">>]}, {any, none, none}),
+    oni_db:set_verb_code(Player, 1, {kitty, go}),
 
     oni_db:add_verb(Alana, {Mistress, [<<"speak">>]}, {none, none, none}),
     oni_db:set_verb_code(Alana, 1, {kitty, speak}).    
@@ -57,7 +76,7 @@ alana_loop(Obj) ->
     %% Set player to 0 otherwise notify will fail
     Bindings = [{this, Obj}, {player, 0}],
     speak(Bindings),
-    timer:sleep(4000),
+    timer:sleep(25000),
     alana_loop(Obj).
 
 spawn_alana(Obj) ->
@@ -71,9 +90,12 @@ speak(Bindings) ->
     case R of 
         R when R > 0.800 ->
             oni:announce(Location, <<"Prrrr.">>);
-        R when R > 0.500 ->
-            oni:announce(Location, <<"Alana looks at you pondering.">>);
-        R when R > 0.250 ->
+        R when R > 0.600 ->
+            oni:announce(Location, <<"Alana looks at you ponderingly.">>);
+        R when R > 0.400 ->
+            %% do nothing for now
+            ok
+        R when R > 0.200 ->
             Pack = oni_pack:create({kitty, start_gnawing}, Bindings),
             oni_aq_sup:queue(This, Pack);
         _Other ->
@@ -105,3 +127,25 @@ look(Bindings) ->
     %% io:format("~p~n", [Bindings]),
     Player = proplists:get_value(player, Bindings),
     oni:notify(Player, "You look around.").
+
+go(Bindings) ->
+    Player = proplists:get_value(player, Bindings),
+    Exit = proplists:get_value(dobj, Bindings),
+    case Exit of
+        Id when is_integer(Id) ->
+            OtherSide = oni_db:get_value(Id, other_side), 
+            oni_db:move(Player, OtherSide),
+            oni:notify(Player, "You go ~s", [oni_db:name(Exit)]);
+        _Else ->
+            oni:notify(Player, "You can't go that way.")
+    end.
+
+%%%============================================================================
+%%% Internal functions
+%%%============================================================================
+create_exit(From, Setup) ->
+    Exit = oni_db:create(nothing),
+    oni_db:move(Exit, From),
+    Rest = oni_db:get_value(From, exits),
+    oni_db:set_value(From, exits, [Exit|Rest]),
+    Setup(Exit).
