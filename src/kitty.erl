@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------------
 %%% @copyright 2013-2014 Bas Pennings [http://github.com/basp]
-%%% @doc Kitty world implementation.
+%%% @doc Part of the kitty example implementation.
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -20,23 +20,12 @@
 -compile(export_all).
 
 init() ->
-    %% Player
-    Player = oni_db:create(nothing),
-    oni_db:rename(Player, <<"generic player">>),
-
     %% Mistress
-    Mistress = oni_db:create(Player),
-    oni_db:rename(Mistress, <<"Mistress">>),
+    Mistress = kitty_player:create(<<"Mistress">>, nothing),
     oni_db:set_wizard_flag(Mistress, true),
-    oni_db:set_player_flag(Mistress, true),   
 
-    Wizard = oni_db:create(Player),
-    oni_db:rename(Wizard, <<"Wizard">>),
+    Wizard = kitty_player:create(<<"Wizard">>, nothing),
     oni_db:set_wizard_flag(Wizard, true),
-    oni_db:set_player_flag(Wizard, true),
-
-    Alana = oni_db:create(nothing),
-    oni_db:rename(Alana, <<"Alana">>),
 
     Room1 = oni_db:create(nothing),
     oni_db:rename(Room1, <<"The First Room">>),
@@ -45,6 +34,12 @@ init() ->
     Room2 = oni_db:create(nothing),
     oni_db:rename(Room2, <<"The Second Room">>),
     oni_db:add_property(Room2, exits, []),
+
+    Room3 = oni_db:create(nothing),
+    oni_db:rename(Room3, <<"The Third Room">>),
+    oni_db:add_property(Room3, exits, []),
+
+    Alana = kitty_alana:create(Mistress),
 
     connect_rooms(Room1, Room2, fun(ThisSide, OtherSide) ->
             oni_db:rename(ThisSide, <<"east">>),
@@ -67,153 +62,50 @@ init() ->
             oni_db:add_verb(OtherSide, {Mistress, [<<"oarrive_msg">>]}, {this, none, this}),
             oni_db:set_verb_code(OtherSide, 1, {kitty, exit_oarrive})
         end),
+
+    connect_rooms(Room2, Room3, fun(ThisSide, OtherSide) ->
+            oni_db:rename(ThisSide, <<"down">>),
+
+            oni_db:add_property(ThisSide, oleave_msg, <<"%n crawls through the hatch.">>),
+            oni_db:add_verb(ThisSide, {Mistress, [<<"oleave_msg">>]}, {this, none, tthis}),
+            oni_db:set_verb_code(ThisSide, 1, {kitty, exit_oleave}),
+
+            oni_db:add_property(ThisSide, oarrive_msg, <<"%n arrives from the hatch.">>),
+            oni_db:add_verb(ThisSide, {Mistress, [<<"oarrive_msg">>]}, {this, none, this}),
+            oni_db:set_verb_code(ThisSide, 1, {kitty, exit_oarrive}),
+
+            oni_db:rename(OtherSide, <<"up">>),
+
+            oni_db:add_property(ThisSide, oleave_msg, <<"%n climbs through the hatch.">>),
+            oni_db:add_verb(ThisSide, {Mistress, [<<"oleave_msg">>]}, {this, none, tthis}),
+            oni_db:set_verb_code(ThisSide, 1, {kitty, exit_oleave}),
+
+            oni_db:add_property(ThisSide, oarrive_msg, <<"%n arrives from the hatch.">>),
+            oni_db:add_verb(ThisSide, {Mistress, [<<"oarrive_msg">>]}, {this, none, this}),
+            oni_db:set_verb_code(ThisSide, 1, {kitty, exit_oarrive})
+        end),
     
     oni_db:move(Mistress, Room1),
     oni_db:move(Wizard, Room1),
     oni_db:move(Alana, Room1),
 
-    oni_db:add_verb(Player, {Mistress, [<<"l*ook>">>]}, {none, none, none}),
-    oni_db:set_verb_code(Player, 1, {kitty, look}),
+    oni_actor_sup:start_actor(Alana, {kitty_alana, loop}).
 
-    oni_db:add_verb(Player, {Mistress, [<<"go">>]}, {any, none, none}),
-    oni_db:set_verb_code(Player, 1, {kitty, go}),
-
-    oni_db:add_verb(Alana, {Mistress, [<<"speak">>]}, {none, none, none}),
-    oni_db:set_verb_code(Alana, 1, {kitty, speak}),
-
-    oni_db:add_verb(Alana, {Mistress, [<<"pet">>]}, {this, none, none}),
-    oni_db:set_verb_code(Alana, 1, {kitty, pet}).
-
-%%%============================================================================
-%%% Actors
-%%%============================================================================
-
-%% @doc Actor loops should be started with the actor supervisor:
-%% oni_actor_sup:start_actor(4, {kitty, alana_loop}).
-%% @end
-alana_loop(Obj) ->
-    %% Set player to 0 otherwise notify will fail
-    Bindings = [{this, Obj}, {player, Obj}],
-    next_action(Bindings),
-    timer:sleep(25000),
-    alana_loop(Obj).
-
-random_exit(Room) ->
-    case Exits = oni_db:get_value(Room, exits) of
-        [_|_] ->
-            I = random:uniform(length(Exits)),
-            lists:nth(I, Exits);
-        _ -> nothing
-    end.
-
-next_action(Bindings) ->
-    This = proplists:get_value(this, Bindings),
-    Location = oni_db:location(This),
-    R = random:uniform(),
-    case R of 
-        R when R > 0.8000 ->
-            oni:announce(Location, <<"Prrrr.">>);
-        R when R > 0.600 ->
-            oni:announce(Location, <<"Alana looks at you ponderingly.">>);
-        R when R > 0.400 ->
-            case random_exit(Location) of
-                nothing -> ok;
-                Exit -> 
-                    Name = oni_db:name(Exit),
-                    NewBindings = [{dobjstr, Name}|Bindings],
-                    Pack = oni_pack:create({kitty, start_go}, NewBindings),
-                    oni_aq_sup:queue(This, Pack)
-            end;
-        R when R > 0.200 ->
-            Pack = oni_pack:create({kitty, start_gnawing}, Bindings),
-            oni_aq_sup:queue(This, Pack);
-        _Other ->
-            oni:announce(Location, <<"Miiiiiiiaaaaauuuuwwww!">>)
-    end.
-
-start_gnawing(Bindings) ->
-    This = proplists:get_value(this, Bindings),
-    Location = oni_db:location(This),
-    oni:announce(Location, <<"Alana starts gnawing on some cables.">>),
-    {continue, 3000, {kitty, continue_gnawing, [Bindings]}}.
-
-continue_gnawing(Bindings) ->
-    This = proplists:get_value(this, Bindings),
-    Location = oni_db:location(This),
-    oni:announce(Location, <<"Alana continues to gnaw on some cables.">>),
-    {continue, 1500, {kitty, finish_gnawing, [Bindings]}}.
-
-finish_gnawing(Bindings) ->
-    This = proplists:get_value(this, Bindings),
-    Location = oni_db:location(This),
-    oni:announce(Location, <<"Alana finishes gnawing on his cable. He seems satisfied for now.">>).
-
-pet(Bindings) ->
-    Player = proplists:get_value(player, Bindings),
-    oni:notify(Player, <<"Alana looks at you curiously.">>).
-
-%%%============================================================================
-%%% Player verbs
-%%%============================================================================
-
-look(Bindings) ->
-    %% io:format("~p~n", [Bindings]),
-    Player = proplists:get_value(player, Bindings),
-    oni:notify(Player, "You look around.").
-
-go(Bindings) ->
-    Player = proplists:get_value(player, Bindings),
-    Pack = oni_pack:create({kitty, start_go}, Bindings),
-    oni_aq_sup:queue(Player, Pack).
-
-start_go(Bindings) ->
-    Player = proplists:get_value(player, Bindings),
-    Dir = proplists:get_value(dobjstr, Bindings),
-    Location = oni_db:location(Player),
-    case find_exit(Location, Dir) of
-        {ambiguous, _} ->
-            oni:notify(Player, "I don't know which way '~s' you mean.", [Dir]);
-        failed ->
-            oni:notify(Player, "You can't go that way.");
-        {_, Name} ->
-            oni:notify(Player, "You go ~s", [Name]),
-            {continue, 1500, {kitty, finish_go, [Bindings]}}
-    end.
-
-finish_go(Bindings) ->
-    Player = proplists:get_value(player, Bindings),
-    Dir = proplists:get_value(dobjstr, Bindings),
-    Location = oni_db:location(Player),
-    case find_exit(Location, Dir) of
-        {ambiguous, _} ->
-            oni:notify(Player, "You suddenly are confused about which way '~s' to go.", [Dir]);
-        failed ->
-            oni:notify(Player, "You can no longer go that way.");
-        {Id, _} ->
-            OtherSide = oni_db:get_value(Id, other_side),
-            OtherRoom = oni_db:location(OtherSide),
-            oni_db:move(Player, OtherRoom),
-            oni:notify(Player, oni_db:name(OtherRoom))            
-    end.
+voices(Obj) ->
+    case random:uniform() of
+        X when X > 0.666 ->
+            oni:notify(Obj, "Someone whispers, \"You there, I can see you.\"");
+        X when X > 0.333 ->
+            oni:notify(Obj, "Someone whispers, \"Stop ignoring me and listen.\"");
+        _Else ->
+            oni:notify(Obj, "You think you hear faint whispers.")
+    end,
+    timer:sleep(45000),
+    voices(Obj).
 
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
-
--spec find_exit(oni_db:objid(), binary()) -> 
-    {oni_db:objid(), binary()} | failed | {ambiguous, [binary()]}.
-find_exit(Location, Name) ->
-    ExitNames = exit_names(Location),
-    oni_match:list(fun({_, X}) -> oni_bstr:starts_with(Name, X) end, ExitNames).
-
-exit_names(Room) ->
-    case oni_db:get_value(Room, exits) of
-        'E_PROPNF' -> [];
-        Exits -> exit_names(Exits, [])
-    end.
-
-exit_names([], Acc) -> lists:reverse(Acc);
-exit_names([H|T], Acc) -> exit_names(T, [{H, oni_db:name(H)}|Acc]).
 
 connect_rooms(From, To, SetupExits) ->
     ThisSide = create_exit(From),
