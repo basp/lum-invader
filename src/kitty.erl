@@ -90,7 +90,7 @@ next_action(Bindings) ->
     Location = oni_db:location(This),
     R = random:uniform(),
     case R of 
-        R when R > 0.800 ->
+        R when R > 0.8000 ->
             oni:announce(Location, <<"Prrrr.">>);
         R when R > 0.600 ->
             oni:announce(Location, <<"Alana looks at you ponderingly.">>);
@@ -98,8 +98,8 @@ next_action(Bindings) ->
             case random_exit(Location) of
                 nothing -> ok;
                 Exit -> 
-                    io:format("Moving Alana to ~p~n", [Exit]),
-                    NewBindings = [{dobj, Exit}|Bindings],
+                    Name = oni_db:name(Exit),
+                    NewBindings = [{dobjstr, Name}|Bindings],
                     Pack = oni_pack:create({kitty, start_go}, NewBindings),
                     oni_aq_sup:queue(This, Pack)
             end;
