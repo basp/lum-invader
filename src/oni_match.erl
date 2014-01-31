@@ -71,7 +71,7 @@ list_i(Pred, [H|T], Acc, Index) when Index > 0 ->
 
 %% Verb function below
 %%
-%% We arbitrarely decide that two empty binaries match.
+%% Two empty binaries are equal. This is required for our end condition.
 verb(<<>>, <<>>, _) -> true;
 
 %% The X byte is the same on both left and right so we are still equal.
@@ -86,7 +86,7 @@ verb(<<>>, <<"*", _/binary>>, _) -> true;
 %% Whatever there is on the left side we can ignore - we have matched.
 verb(_, <<"*">>, _) -> true;
 
-%% We ar running into a wildcard but there is more to parse. We also have
+%% We are running into a wildcard but there is more to parse. We also have
 %% more to parse on the left side so we'll try and see if we can continue.
 %%
 %% At this point the thing specified by the user is more precise (longer) than 
